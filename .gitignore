@@ -1,0 +1,56 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# env files (can opt-in for committing if needed)
+.env*
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# --- Project additions ---
+
+# .env* above would swallow the committed template the brief requires.
+!.env.example
+
+# Machine-specific Claude Code permissions (launch.json is shared).
+.claude/settings.local.json
+
+# Convex CLI vendors agent skills into the repo on every run. Tooling, not source.
+/.agents/
+skills-lock.json
+
+# Convex CLI also vendors skills here.
+.claude/skills/
