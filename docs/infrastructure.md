@@ -104,7 +104,7 @@ What we now own ourselves, precisely because we are not buying a hosted identity
 | **Password reset** | Needs an email provider (Resend) plus a verified sending domain, wired through the password provider. | **Out of v1. [Decided, Q26]** Seeded accounts make it unnecessary for review — and with no signup either (**Q4**), an account that loses its password is re-seeded rather than recovered. |
 | **Email verification** | Same dependency. | Out of v1. Anyone can sign up with any address, which is tolerable for an internal tool with a known user list, but it is a real property of the app and is stated rather than glossed. |
 | **MFA** | Not available out of the box. | Out of scope. This is the one place a hosted provider would have won, and it is worth naming as the trade accepted. |
-| **Brute-force protection / lockout** | Convex Auth does not throttle sign-in attempts for us. | A named gap (§12). The fix is a rate limiter on the sign-in path — our code, not a provider's. |
+| **Brute-force protection** | ~~Convex Auth does not throttle sign-in attempts for us.~~ **Wrong — corrected during Phase 1.** The library ships sign-in rate limiting: `authRateLimits` is one of the tables `authTables` creates, and the password path (`retrieveAccountWithCredentials`) checks it. Default **10 failed attempts per hour per identifier**, refilled token-bucket style, reset on success. | **Nothing to build.** Tunable via `signIn.maxFailedAttempsPerHour` (the library's spelling) if 10/hour proves wrong. Account *lockout* — as opposed to throttling — is still absent, which is the correct trade: lockout turns a brute-force attempt into a denial-of-service against the real user. |
 | **Beta API surface** | `@convex-dev/auth` is still beta and its Next.js integration has changed across versions — and with Clerk ruled out there is now **no fallback provider**. | Risk #1 in §11. Verify against current docs and pin exact versions on **day one** of the build, before anything is layered on top. |
 
 **Where roles live:** the Convex `users` table, never a JWT claim the client can influence. A token proves *who you are*; the database decides *what you may do*.
@@ -319,7 +319,7 @@ The build window is three days once answers arrive **[Brief]**, which is why thi
 | 6 | **No amount ceiling, no thresholds, and a duplicate check that can only compare amount and date** (**Q17**, **Q22**, **Q18** with **Q16**) | An order-of-magnitude typo reaches the queue looking normal; only the approver catches it | Accepted deliberately — a human reviews every expense. Recorded in `feature-summary.md` F2 and `questions.md` Part 4 so it reads as a choice, not a miss |
 | 7 | Reactive-client-first means little SSR | Slower first paint | Acceptable for an authenticated internal tool; static shell is server-rendered |
 | 8 | No email at all (**Q24**) | A manager only discovers new submissions by opening the app | Accepted for v1. Live queries mean anyone with the page open sees changes instantly; a Convex `action` plus Resend is the contained addition later |
-| 9 | Convex Auth owns no account lifecycle (**Q26**) | No password reset, no verification, no MFA, no sign-in throttling | Accepted and documented, not silently absent. §4 lists each gap and its fix |
+| 9 | Convex Auth owns little of the account lifecycle (**Q26**) | No password reset, no email verification, no MFA. **Sign-in throttling turned out to be included** — see §4 | Accepted and documented, not silently absent. §4 lists each gap and its fix |
 
 ---
 
@@ -332,7 +332,7 @@ The build window is three days once answers arrive **[Brief]**, which is why thi
 - All public function arguments are validated by Convex validators; nothing reaches the database unvalidated.
 - Roles live server-side only. No capability is derived from client state.
 - Server errors surface as generic messages to the client; details stay in the Convex logs.
-- Rate limiting on sign-in attempts is out of scope for v1 but worth naming (**Q26**): Convex Auth does not throttle for us, and email + password with no throttle is credential-stuffing bait in a real deployment. The fix is a rate limiter on the sign-in path, and with no hosted provider in the stack it is our job rather than someone else's.
+- **Sign-in throttling is present, not absent.** An earlier draft of this document claimed Convex Auth does not throttle failed sign-ins and listed it as an accepted gap. Verified in Phase 1: it does — 10 failed attempts per hour per identifier by default, enforced in the password sign-in path via the `authRateLimits` table. Credential stuffing is therefore already blunted without us writing anything.
 - The submitted test credentials are, by design, publicly known. Seeded demo data must therefore contain no real personal information and no real receipts.
 
 ---

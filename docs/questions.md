@@ -53,7 +53,7 @@ The client explicitly left these to our judgement. Each choice and its reasoning
 | **Q23** | Full append-only event log per expense, with actor, timestamp, note, and field-level before/after on edits. Employee and manager see the same history. |
 | **Q24** | No email notifications. |
 | **Q25** | No CSV export or reporting. |
-| **Q26** | Convex Auth password provider and nothing else of the account lifecycle: no reset, no verification, no MFA, no sign-in throttling. |
+| **Q26** | Convex Auth password provider and nothing else of the account lifecycle: no reset, no verification, no MFA. **Correction after Phase 1 verification:** sign-in throttling was listed here as a gap and is not one — the library rate-limits failed sign-ins at 10/hour per identifier out of the box. |
 | **Q27** | Multi-country absorbed, not built. No teams table, no FX, no per-country policy, no `orgId`. |
 | **Q28** | Multi-level approvals not built; authority behind a single `canDecide()`. |
 | **Q29 / Q30 / Q30a** | Timeline and deliverables per the written brief; planning docs committed under `/docs`. |
