@@ -2,6 +2,28 @@
 
 **Branch:** `main` · **Date:** 2026-08-24 · **Scope:** everything written in Phases 1–6 (`convex/`, `src/`, `scripts/`).
 
+---
+
+## Threat model
+
+**Added after the fact, which was the mistake.** The original audit ranked findings without stating who the adversary was, and consequently over-weighted abuse scenarios that do not apply. A severity is meaningless without this section.
+
+**What this system is:** a take-home exercise in a closed environment. Its users are a handful of known reviewers at Airdev. The seeded credentials are published deliberately so they can sign in. Every row of data is fictional — invented names, generated placeholder receipts, no real personal information and no real money.
+
+**What it is not:** an internet-facing production system holding real expense claims, real receipts with real addresses and card fragments, or connected to any payment rail. Nothing in it moves money; approval sets a status.
+
+**Adversaries worth defending against here:**
+
+1. **A legitimate user reaching data that is not theirs** — an employee reading a colleague's expense or receipt, or acting on one. This is the real risk, it is entirely context-independent, and it is what most of the work went into.
+2. **A reviewer probing the app the way an engineer would** — pasting another user's URL, opening a route their role should not reach, calling the API directly. Also real, and tested.
+
+**Adversaries NOT worth defending against here, stated so nobody re-derives them as gaps:**
+
+3. **A malicious authenticated user running up costs** — spamming uploads to fill storage. Requires someone who wants to burn a demo project's quota. Not the reviewer population, and the nightly sweep reclaims within 24h regardless.
+4. **Denial of service, credential stuffing at scale, insider threat.** No production traffic, no real accounts to stuff, no insiders.
+
+**What would change if this became a real deployment:** items 3 and 4 return immediately, and the deferred script-src CSP (M2) matters far more once tokens protect real data rather than fictional data. That is the list to revisit before a real rollout — not before this submission.
+
 ## Summary
 
 | Severity | Count |
@@ -84,6 +106,13 @@
 - **Assessment:** the control is the query that issues it — `getReceiptUrl` refuses callers who cannot view the expense, verified by test. Once issued, the URL is a capability. It is never logged, never placed in a query string of ours, and never emailed.
 - **Hardening path:** proxy every fetch through an authenticated HTTP action with a short-lived signed token (`infrastructure.md` §7, option B). Costs the CDN and needs a token in the URL because `<img>` cannot send an `Authorization` header.
 - **Status:** ✅ Accepted with reasoning
+
+### Re-ranked under the threat model above
+
+| Item | Original framing | Under the real threat model |
+| --- | --- | --- |
+| **No rate limiting on uploads** | Flagged as the most realistic abuse, because credentials are public | **Not applicable.** Assumes an adversary who wants to exhaust a demo project's storage quota. The reviewer population has no such motive, and the nightly sweep reclaims orphans within 24h. Returns the moment this faces real traffic |
+| **`discardUpload` has no ownership check** | Latent weakness on the only public destructive endpoint | **A code-review observation, not a live risk.** It refuses any file attached to an expense, and the storage IDs it needs are unguessable and never returned to a client — verified: `expenses.get` exposes only `hasReceipt: boolean`. Worth removing if the endpoint is ever touched again, since the nightly sweep makes it redundant |
 
 ---
 
