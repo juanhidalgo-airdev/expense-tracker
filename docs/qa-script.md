@@ -183,8 +183,26 @@ Every section walked. One defect found and fixed during the run:
 
 Also corrected: `.env.example` pointed at `npx @convex-dev/auth` while the README says `npm run setup:auth`.
 
-**Not fully executable in this environment:**
+**Gaps subsequently closed — see below.**
+
+**Originally not executable in this environment:**
 
 - **6.1–6.2, two simultaneous sessions.** One browser profile means one session at a time, so the true simultaneous race could not be driven through the UI. The sequential half was verified — a second manager opening an already-decided expense gets no decision panel and the first decision stands. The genuinely concurrent case is covered by an integration test asserting the second mutation throws *already been decided*.
 - **10.3, full clean-clone run.** Clone, `npm install` and `npm test` were executed from the public repo: **126 tests pass with no environment variables at all**. The remaining steps (`npx convex dev`) need an interactive login and would create a new cloud project, so the commands were verified to exist and be wired rather than run.
 - **7.3, machine timezone change.** Not performed. The browser ran in America/Mexico_City (UTC−6) throughout and dates rendered as stored, which exercises the same failure mode.
+
+### Gap closure, 25 Aug 2026
+
+All three gaps from the run above are now closed, and the first two left tooling behind rather than a one-off result.
+
+**Concurrency (6.1–6.2) — closed, and more strictly than the script asked.** One browser profile cannot hold two sessions, so instead two real manager tokens fire at the same expense in the same tick via `scripts/race-decisions.mjs`. The calls genuinely overlap rather than merely arriving close together. Against the live backend: Marcus's reject committed, Maya's approve was refused with *This expense has already been decided*, exactly one winner. This tests the real database transaction, which the convex-test version cannot.
+
+**Clean clone (10.3) — closed end to end.** Cloned the public repo, then followed the README exactly: `npm install` → `npx convex dev` (created a fresh project and pushed the schema) → `npm run setup:auth` (set the three variables) → `npm run seed` (four accounts, five categories, six expenses) → `npm run build` (compiled clean). No undocumented steps and nothing missing from `.env.example`.
+
+**Timezone (7.3) — closed durably.** Rather than changing a machine clock once, `npm run test:timezones` runs the whole suite at UTC+13, UTC−11 and UTC. All 134 tests pass in each. Repeatable, and it belongs in CI.
+
+### Invariant tests
+
+The recurring failure in this build was documentation asserting behaviour the code did not have — four separate times, each caught by a person rather than a test. `convex/invariants.test.ts` now checks the claims: every public function authenticates and declares validators, every index named in `scalability.md` exists, no query filters without an index, the sweep is real and scheduled, pagination is implemented, SVG stays off the receipt allowlist, and no client query is issued ungated.
+
+Those tests were themselves verified by breaking the code four ways — removing an auth guard, un-gating a query, reintroducing the table scan, deleting the cron — and confirming each was caught. A test that cannot fail is worse than no test.

@@ -49,8 +49,9 @@ npm run dev             # http://localhost:3000
 ### Other commands
 
 ```bash
-npm test           # 116 unit + integration tests
-npm run build      # production build
+npm test              # 134 tests: unit, integration, and invariants
+npm run test:timezones # the suite at UTC+13, UTC-11 and UTC, where dates break
+npm run build         # production build
 ```
 
 ---
@@ -62,7 +63,7 @@ npm run build      # production build
 | Backend | **Convex** — database, server functions, file storage |
 | Auth | **Convex Auth**, password provider |
 | Frontend | **Next.js 15** (App Router), React 19, TypeScript, Tailwind |
-| Tests | Vitest + `convex-test` (116), plus a written manual QA script |
+| Tests | Vitest + `convex-test` (134), invariant tests over the docs, plus a manual QA script |
 | Hosting | Vercel + Convex Cloud |
 
 ```
