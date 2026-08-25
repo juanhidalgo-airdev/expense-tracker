@@ -24,6 +24,63 @@ const EDITABLE_FIELDS = [
   "receiptStorageId",
 ];
 
+/** Shape returned to the client for list rows. */
+const expenseSummary = v.object({
+  _id: v.id("expenses"),
+  description: v.string(),
+  amountMinor: v.number(),
+  currency: v.string(),
+  categoryLabel: v.string(),
+  expenseDate: v.string(),
+  status: v.union(
+    v.literal("draft"),
+    v.literal("submitted"),
+    v.literal("approved"),
+    v.literal("rejected"),
+  ),
+  submittedAt: v.optional(v.number()),
+  submitterName: v.string(),
+});
+
+/**
+ * The signed-in user's own expenses, newest first.
+ *
+ * Scoped by index rather than fetched-then-filtered: an index-scoped read
+ * cannot accidentally return another user's row, which makes the scoping a
+ * property of the query rather than of a line of JavaScript that could be
+ * edited out later.
+ */
+export const listMine = query({
+  args: {},
+  returns: v.array(expenseSummary),
+  handler: async (ctx) => {
+    const user = await requireUser(ctx);
+
+    const expenses = await ctx.db
+      .query("expenses")
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .order("desc")
+      .collect();
+
+    return await Promise.all(
+      expenses.map(async (expense) => {
+        const category = await ctx.db.get(expense.categoryId);
+        return {
+          _id: expense._id,
+          description: expense.description,
+          amountMinor: expense.amountMinor,
+          currency: expense.currency,
+          categoryLabel: category?.label ?? "Uncategorised",
+          expenseDate: expense.expenseDate,
+          status: expense.status,
+          submittedAt: expense.submittedAt,
+          submitterName: user.name ?? user.email ?? "Unknown",
+        };
+      }),
+    );
+  },
+});
+
 /**
  * Warns when the same person already has an expense for the same amount on the
  * same day. Advisory only — it never blocks submission, and nothing about the

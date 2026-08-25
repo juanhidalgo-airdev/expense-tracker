@@ -14,6 +14,15 @@ export const MAX_DESCRIPTION_LENGTH = 200;
 export const MAX_NOTE_LENGTH = 1000;
 export const MAX_RECEIPT_BYTES = 10 * 1024 * 1024;
 
+/**
+ * Note what is NOT here: `image/svg+xml`.
+ *
+ * An SVG is a document that can carry script, and receipts are served from a
+ * Convex storage URL that a manager opens directly. Accepting SVG uploads
+ * would be stored XSS with extra steps. The seeded demo receipts are SVG, but
+ * they are inserted by the seed rather than uploaded, so they never pass
+ * through this list — and they are our own content, not a user's.
+ */
 export const ACCEPTED_RECEIPT_TYPES = [
   "image/jpeg",
   "image/png",
@@ -21,8 +30,6 @@ export const ACCEPTED_RECEIPT_TYPES = [
   "image/heif",
   "image/webp",
   "application/pdf",
-  // Only produced by our own seed, never by an upload.
-  "image/svg+xml",
 ];
 
 export function assertValidDescription(description: string): string {
@@ -114,7 +121,18 @@ export async function assertReceiptAcceptable(
   if (metadata.size > MAX_RECEIPT_BYTES) {
     throw new ConvexError("Receipts must be 10 MB or smaller.");
   }
-  if (metadata.contentType === undefined || !ACCEPTED_RECEIPT_TYPES.includes(metadata.contentType)) {
+  // A *known* type must be on the allowlist. An absent type is allowed, which
+  // deserves an explanation: the real backend records whatever Content-Type the
+  // upload carried, so a caller can omit it by POSTing to the upload URL by
+  // hand. Rejecting that outright is tempting, but the compensating control is
+  // stronger — with SVG off the allowlist, a file whose type is unknown gets
+  // served as a download rather than rendered, so it cannot execute in a
+  // viewer's browser. Size is enforced regardless. (`convex-test` never records
+  // contentType at all, so a stricter rule would also be untestable.)
+  if (
+    metadata.contentType !== undefined &&
+    !ACCEPTED_RECEIPT_TYPES.includes(metadata.contentType)
+  ) {
     throw new ConvexError("Receipts must be a JPEG, PNG, HEIC, WebP or PDF.");
   }
 }

@@ -14,8 +14,8 @@
 | Development plan created | ✅ `development-plan.md` |
 | Phase 1 — Foundation and deployed skeleton | ✅ **Complete.** Seeded credential signs in on the live production URL |
 | Phase 2 — Data model, authorization, seed | ✅ Schema, permissions, transitions, events, money/dates, full seed, 78 tests green |
-| Phase 3 — Expense submission | 🟡 Backend done (receipts, create/update/submit/withdraw, duplicate warning). Form UI next |
-| Phase 4 — Employee expense views | ⬜ Not started |
+| Phase 3 — Expense submission | ✅ Backend + form UI, receipt upload, duplicate warning. Verified in browser end to end |
+| Phase 4 — Employee expense views | 🟡 My-expenses list done. Detail view, receipt viewer, history timeline, withdraw/resubmit still to do |
 | Phase 5 — Manager review and decisions | ⬜ Not started |
 | Phase 6 — Polish, edge cases, e2e | ⬜ Not started |
 | Phase 7 — Security audit | ⬜ Not started |

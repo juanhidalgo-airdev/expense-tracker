@@ -21,5 +21,9 @@
     "noEmit": true
   },
   "include": ["./**/*"],
-  "exclude": ["./_generated"]
+  /* Tests are excluded because they run under Vitest, not in the Convex
+   * runtime: convex-test needs `import.meta.glob`, which is a Vite API that
+   * this config has no types for. Vitest typechecks them via the root
+   * tsconfig instead. */
+  "exclude": ["./_generated", "./**/*.test.ts"]
 }
