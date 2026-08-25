@@ -129,7 +129,13 @@ export default defineSchema({
      */
     .index("by_decidedAt", ["decidedAt"])
     // Duplicate warning: same person, same day, same amount.
-    .index("by_user_and_expenseDate", ["userId", "expenseDate"]),
+    .index("by_user_and_expenseDate", ["userId", "expenseDate"])
+    /**
+     * "Is this uploaded file referenced by anything?" — asked when a receipt is
+     * replaced, and once per candidate by the orphan sweep. Both did a full
+     * table scan before this existed.
+     */
+    .index("by_receiptStorageId", ["receiptStorageId"]),
 
   /**
    * Append-only history. Written only through the helper in `events.ts`,

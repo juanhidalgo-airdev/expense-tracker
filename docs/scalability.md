@@ -89,6 +89,7 @@ Every read path is index-backed. No query filters over a full table scan:
 | `expenses.by_status_and_submittedAt` | The pending queue, oldest first |
 | `expenses.by_decidedAt` | The decided tab, newest first |
 | `expenses.by_user_and_expenseDate` | The duplicate warning |
+| `expenses.by_receiptStorageId` | Is this uploaded file referenced? — receipt replacement, and the orphan sweep |
 | `expenseEvents.by_expense` | One expense's history |
 | `categories.by_active_and_sortOrder` | The category picker |
 | `users.email` | Sign-in and seeding |
@@ -102,6 +103,8 @@ Index-scoped reads are also a **correctness** property, not just a performance o
 **`history` is not paginated.** It is bounded by events on a single expense — realistically under twenty. It would need attention only if an expense could be edited hundreds of times.
 
 **The seed and reset mutations `.collect()` the tables.** They are internal, run deliberately, and operate on demo data.
+
+**The orphan sweep is bounded per run.** It takes 200 storage entries at a time rather than every file, so it cannot grow into an unbounded transaction. A backlog drains over successive nights instead of failing in one.
 
 **Live queries re-run on write.** This is what makes an approval appear on the employee's screen without a refresh, and it is a real cost: every subscriber to the pending queue re-runs when anyone submits. Pagination bounds that cost per subscriber. At hundreds of concurrent managers it would be worth measuring.
 

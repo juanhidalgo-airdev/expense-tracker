@@ -54,9 +54,25 @@ describe("canView", () => {
     expect(canView(otherEmployee, expense(status))).toBe(false);
   });
 
-  test.each(STATUSES)("any manager can view any %s expense", (status) => {
-    // Follows from the client's answer that any manager may approve anything.
-    expect(canView(manager, expense(status))).toBe(true);
+  test.each(["submitted", "approved", "rejected"] as const)(
+    "any manager can view any %s expense",
+    (status) => {
+      // Follows from the client's answer that any manager may approve anything.
+      expect(canView(manager, expense(status))).toBe(true);
+    },
+  );
+
+  test("a manager cannot view someone else's draft", () => {
+    // A draft has not been shared with anyone. The spec calls it "not yet
+    // visible to any manager", and this function once disagreed — it returned
+    // true for a manager regardless of status, so a manager holding the URL
+    // could read a half-written expense. Drafts never reach the queue, which is
+    // why nothing surfaced it.
+    expect(canView(manager, expense("draft"))).toBe(false);
+  });
+
+  test("the owner can still view their own draft", () => {
+    expect(canView(owner, expense("draft"))).toBe(true);
   });
 });
 

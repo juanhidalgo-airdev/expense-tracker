@@ -15,14 +15,22 @@ type User = Doc<"users">;
 type Expense = Doc<"expenses">;
 
 /**
- * Owner, or any manager.
+ * The owner always. Any manager, but never someone else's draft.
  *
- * Managers see everything company-wide, which follows directly from the
- * client's answer that any manager can approve any expense. The consequence
- * is that the owner boundary is the only real scoping rule in the app.
+ * Managers see everything company-wide, which follows from the client's answer
+ * that any manager can approve any expense — but a draft has not been shared
+ * with anyone yet. The spec is explicit that a draft is "not yet visible to any
+ * manager", and an earlier version of this function contradicted that: it
+ * returned true for any manager regardless of status, so a manager holding a
+ * URL could read an employee's half-finished expense.
+ *
+ * Drafts never appeared in the queue, which is why it went unnoticed.
  */
 export function canView(user: User, expense: Expense): boolean {
-  return expense.userId === user._id || user.role === "manager";
+  if (expense.userId === user._id) {
+    return true;
+  }
+  return user.role === "manager" && expense.status !== "draft";
 }
 
 /**

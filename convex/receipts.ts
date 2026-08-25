@@ -1,5 +1,5 @@
 import { ConvexError, v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { internalMutation, mutation, query } from "./_generated/server";
 import { requireUser } from "./lib/auth";
 import { canView } from "./lib/permissions";
 
@@ -81,9 +81,12 @@ export const discardUpload = mutation({
 
     // Refuse to delete a file some expense still points at — the caller may
     // have sent the wrong id, and a receipt is not recoverable.
+    //
+    // Index-backed rather than `.filter()`: this previously scanned the whole
+    // expenses table on every receipt replacement.
     const attached = await ctx.db
       .query("expenses")
-      .filter((q) => q.eq(q.field("receiptStorageId"), args.storageId))
+      .withIndex("by_receiptStorageId", (q) => q.eq("receiptStorageId", args.storageId))
       .first();
 
     if (attached !== null) {
@@ -92,5 +95,54 @@ export const discardUpload = mutation({
 
     await ctx.storage.delete(args.storageId);
     return null;
+  },
+});
+
+/**
+ * Deletes uploaded files that no expense references.
+ *
+ * The gap this closes: the upload happens as soon as a file is chosen, but the
+ * expense is only created on submit. Abandon the form, or replace a receipt
+ * while offline, and the file stays in storage with nothing pointing at it.
+ * Storage is billed whether or not anything references it.
+ *
+ * `infrastructure.md` described this sweep as existing for some time before it
+ * actually did. It does now, on a daily cron (`crons.ts`).
+ *
+ * Only files older than the grace period are considered, because a file
+ * uploaded seconds ago is probably attached to a form someone is still filling
+ * in. Each run is bounded so it cannot turn into an unbounded transaction.
+ */
+export const sweepOrphanedUploads = internalMutation({
+  args: {},
+  returns: v.object({ considered: v.number(), deleted: v.number() }),
+  handler: async (ctx) => {
+    const GRACE_MS = 24 * 60 * 60 * 1000;
+    const BATCH = 200;
+    const cutoff = Date.now() - GRACE_MS;
+
+    const files = await ctx.db.system.query("_storage").take(BATCH);
+
+    let considered = 0;
+    let deleted = 0;
+
+    for (const file of files) {
+      if (file._creationTime > cutoff) {
+        continue;
+      }
+      considered++;
+
+      const attached = await ctx.db
+        .query("expenses")
+        .withIndex("by_receiptStorageId", (q) => q.eq("receiptStorageId", file._id))
+        .first();
+
+      if (attached === null) {
+        await ctx.storage.delete(file._id);
+        deleted++;
+      }
+    }
+
+    return { considered, deleted };
   },
 });

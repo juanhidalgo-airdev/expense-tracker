@@ -239,7 +239,7 @@ Two managers clicking approve within the same millisecond produce one success an
 
 **Validation.** Content type and size are checked in the browser for feedback and re-checked on the server against `ctx.db.system.get(storageId)` (the `_storage` table exposes `size`, `contentType`, and `sha256`). Limits: **exactly one receipt, required**, from JPEG, PNG, HEIC, WebP, or PDF, up to 10 MB. **[Decided, Q15]**
 
-**Orphaned files.** If step 2 succeeds and step 3 never happens, the file exists with nothing pointing at it. Handling: the upload URL is only issued to an authenticated user, and a scheduled internal mutation sweeps `_storage` entries older than 24 hours with no referencing expense. Small, real, and the kind of thing that quietly accumulates cost if ignored.
+**Orphaned files.** If step 2 succeeds and step 3 never happens, the file exists with nothing pointing at it. Handling: the upload URL is only issued to an authenticated user, and a nightly cron (`convex/crons.ts`) runs `receipts.sweepOrphanedUploads`, which deletes `_storage` entries older than 24 hours that no expense references. Index-backed via `by_receiptStorageId` and bounded to 200 files per run. Small, real, and the kind of thing that quietly accumulates cost if ignored.
 
 **The trap.** `ctx.storage.getUrl(storageId)` returns a URL that is **not itself access-controlled** — it is long and unguessable, but anyone holding it can fetch the file. Receipts contain names, addresses, and card fragments, so this matters.
 

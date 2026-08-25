@@ -143,7 +143,7 @@ stateDiagram-v2
 
 | Status | Meaning | Who can change it | Employee can edit? |
 | --- | --- | --- | --- |
-| `draft` **[Decided, Q6]** | Started, not yet visible to any manager. | Owner | Yes |
+| `draft` **[Decided, Q6]** | Started, and **visible only to its owner** — not to managers, by URL or otherwise. | Owner | Yes |
 | `submitted` **[Brief]** | Awaiting review; appears in every manager's queue. | Owner (withdraw), Manager (decide) | **No — withdraw to draft first** **[Decided, Q7]** |
 | `approved` **[Brief]** | Signed off. **Terminal.** **[Decided, Q10]** **[Client, Q9]** | — | No |
 | `rejected` **[Brief]** | Declined, with a required note explaining why. | Owner (edit and resubmit) | **Yes — same expense is corrected and resubmitted** **[Decided, Q8]** |

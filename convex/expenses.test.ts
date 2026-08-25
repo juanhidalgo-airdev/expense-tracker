@@ -321,11 +321,15 @@ describe("getReceiptUrl", () => {
     expect(url).toBeTruthy();
   });
 
-  test("returns a URL to any manager", async () => {
+  test("returns a URL to any manager, once the expense has been submitted", async () => {
     const { t, owner, manager, category, storageId } = await setup();
+    // Submitted, not draft. This test previously created a draft and asserted a
+    // manager could read its receipt — it was encoding the very bug that a
+    // manager could see unsubmitted work. See receipts.test.ts for the draft
+    // cases in their own right.
     const expenseId = await t
       .withIdentity({ subject: owner })
-      .mutation(api.expenses.create, validArgs(category, storageId));
+      .mutation(api.expenses.create, validArgs(category, storageId, true));
 
     const url = await t
       .withIdentity({ subject: manager })
