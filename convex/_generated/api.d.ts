@@ -10,7 +10,12 @@
 
 import type * as auth from "../auth.js";
 import type * as http from "../http.js";
+import type * as lib_auth from "../lib/auth.js";
+import type * as lib_events from "../lib/events.js";
+import type * as lib_permissions from "../lib/permissions.js";
+import type * as lib_transitions from "../lib/transitions.js";
 import type * as seed from "../seed.js";
+import type * as seedData from "../seedData.js";
 import type * as users from "../users.js";
 
 import type {
@@ -22,7 +27,12 @@ import type {
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   http: typeof http;
+  "lib/auth": typeof lib_auth;
+  "lib/events": typeof lib_events;
+  "lib/permissions": typeof lib_permissions;
+  "lib/transitions": typeof lib_transitions;
   seed: typeof seed;
+  seedData: typeof seedData;
   users: typeof users;
 }>;
 
