@@ -4,6 +4,7 @@ import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Id } from "../../convex/_generated/dataModel";
 import { formatCalendarDate, formatTimestamp } from "@/lib/dates";
+import { useIsAuthed } from "@/lib/useIsAuthed";
 import { formatMinor } from "@/lib/money";
 
 /**
@@ -43,7 +44,8 @@ function formatValue(field: string, value: string | null): string {
 }
 
 export function HistoryTimeline({ expenseId }: { expenseId: Id<"expenses"> }) {
-  const events = useQuery(api.expenses.history, { expenseId });
+  const isAuthed = useIsAuthed();
+  const events = useQuery(api.expenses.history, isAuthed ? { expenseId } : "skip");
 
   if (events === undefined) {
     return <p className="text-sm text-black/60 dark:text-white/60">Loading history…</p>;

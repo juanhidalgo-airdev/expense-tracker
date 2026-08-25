@@ -8,6 +8,7 @@ import { useState } from "react";
 import { api } from "../../../../convex/_generated/api";
 import { Id } from "../../../../convex/_generated/dataModel";
 import { AppShell } from "@/components/AppShell";
+import { useIsAuthed } from "@/lib/useIsAuthed";
 import { DecisionPanel } from "@/components/DecisionPanel";
 import { HistoryTimeline } from "@/components/HistoryTimeline";
 import { ReceiptViewer } from "@/components/ReceiptViewer";
@@ -20,8 +21,9 @@ export default function ExpenseDetailPage() {
   const expenseId = params.id as Id<"expenses">;
   const router = useRouter();
 
-  const expense = useQuery(api.expenses.get, { expenseId });
-  const viewer = useQuery(api.users.getCurrentUser);
+  const isAuthed = useIsAuthed();
+  const expense = useQuery(api.expenses.get, isAuthed ? { expenseId } : "skip");
+  const viewer = useQuery(api.users.getCurrentUser, isAuthed ? {} : "skip");
   const withdraw = useMutation(api.expenses.withdraw);
   const submit = useMutation(api.expenses.submit);
 

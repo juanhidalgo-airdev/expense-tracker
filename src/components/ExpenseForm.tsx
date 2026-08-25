@@ -7,6 +7,7 @@ import { FormEvent, useState } from "react";
 import { api } from "../../convex/_generated/api";
 import { Id } from "../../convex/_generated/dataModel";
 import { ReceiptField } from "@/components/ReceiptField";
+import { useIsAuthed } from "@/lib/useIsAuthed";
 import { todayCalendarDate } from "@/lib/dates";
 import { formatMinor, MoneyParseError, minorToInput, parseAmountToMinor } from "@/lib/money";
 
@@ -29,7 +30,8 @@ export type ExpenseFormInitial = {
  */
 export function ExpenseForm({ initial }: { initial?: ExpenseFormInitial }) {
   const router = useRouter();
-  const categories = useQuery(api.categories.list);
+  const isAuthed = useIsAuthed();
+  const categories = useQuery(api.categories.list, isAuthed ? {} : "skip");
   const createExpense = useMutation(api.expenses.create);
   const updateExpense = useMutation(api.expenses.update);
   const submitExpense = useMutation(api.expenses.submit);
@@ -57,7 +59,7 @@ export function ExpenseForm({ initial }: { initial?: ExpenseFormInitial }) {
 
   const duplicate = useQuery(
     api.expenses.findPossibleDuplicate,
-    amountMinor !== null && expenseDate !== ""
+    isAuthed && amountMinor !== null && expenseDate !== ""
       ? { amountMinor, expenseDate, excludeId: initial?._id }
       : "skip",
   );

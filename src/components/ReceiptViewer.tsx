@@ -4,6 +4,7 @@ import { useQuery } from "convex/react";
 import { useState } from "react";
 import { api } from "../../convex/_generated/api";
 import { Id } from "../../convex/_generated/dataModel";
+import { useIsAuthed } from "@/lib/useIsAuthed";
 
 /**
  * Displays an expense's receipt.
@@ -14,7 +15,8 @@ import { Id } from "../../convex/_generated/dataModel";
  * put in a link we generate elsewhere.
  */
 export function ReceiptViewer({ expenseId }: { expenseId: Id<"expenses"> }) {
-  const url = useQuery(api.receipts.getReceiptUrl, { expenseId });
+  const isAuthed = useIsAuthed();
+  const url = useQuery(api.receipts.getReceiptUrl, isAuthed ? { expenseId } : "skip");
   const [failed, setFailed] = useState(false);
 
   if (url === undefined) {

@@ -6,12 +6,14 @@ import { useParams } from "next/navigation";
 import { api } from "../../../../../convex/_generated/api";
 import { Id } from "../../../../../convex/_generated/dataModel";
 import { AppShell } from "@/components/AppShell";
+import { useIsAuthed } from "@/lib/useIsAuthed";
 import { ExpenseForm } from "@/components/ExpenseForm";
 
 export default function EditExpensePage() {
   const params = useParams<{ id: string }>();
   const expenseId = params.id as Id<"expenses">;
-  const expense = useQuery(api.expenses.get, { expenseId });
+  const isAuthed = useIsAuthed();
+  const expense = useQuery(api.expenses.get, isAuthed ? { expenseId } : "skip");
 
   if (expense === undefined) {
     return (
