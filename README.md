@@ -50,7 +50,6 @@ npm run dev             # http://localhost:3000
 
 ```bash
 npm test           # 116 unit + integration tests
-npm run test:e2e   # Playwright happy path (needs npx playwright install chromium)
 npm run build      # production build
 ```
 
@@ -63,7 +62,7 @@ npm run build      # production build
 | Backend | **Convex** — database, server functions, file storage |
 | Auth | **Convex Auth**, password provider |
 | Frontend | **Next.js 15** (App Router), React 19, TypeScript, Tailwind |
-| Tests | Vitest + `convex-test`, one Playwright happy path |
+| Tests | Vitest + `convex-test` (116), plus a written manual QA script |
 | Hosting | Vercel + Convex Cloud |
 
 ```

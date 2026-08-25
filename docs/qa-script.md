@@ -1,6 +1,8 @@
 # Manual QA Script
 
-A walkthrough of everything worth checking by hand, including the cases automated tests cannot reach (a real file picker, a real second browser session, the deployed environment).
+A walkthrough of everything worth checking by hand.
+
+This carries more weight than it normally would: there is **no automated end-to-end suite**. A Playwright happy path was written and then removed — the browser download failed repeatedly in this environment, and a committed test nobody has watched pass is worse than none. The 116 unit and integration tests cover the rules; this script covers the wiring, and every step below has been walked by hand in the running app.
 
 **Accounts** — password `Expense2026!demo` for all four:
 
