@@ -1,13 +1,39 @@
 @import "tailwindcss";
 
+/**
+ * Theme is driven by a `data-theme` attribute on <html>, which an inline
+ * script in the layout sets before first paint — from a saved choice if there
+ * is one, otherwise from the system preference.
+ *
+ * That attribute is the single source of truth, so this retargets Tailwind's
+ * `dark:` variant at it. Without this line the ~80 `dark:` utilities across the
+ * app would keep following prefers-color-scheme and quietly ignore the toggle.
+ */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
-  /* Tells the browser to render native controls — the select dropdown list,
-     the date picker, scrollbars — in light styling. Without this they fall
-     back to the platform default regardless of our colours, which is how the
-     dropdown ended up rendering white-on-white in dark mode. */
+  /* Renders native controls — select dropdowns, date pickers, scrollbars — in
+     light styling. Without it they use the platform default whatever our
+     palette says, which is how the dropdown once went white-on-white. */
   color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  --background: #0a0a0a;
+  --foreground: #ededed;
+  color-scheme: dark;
+}
+
+/* Fallback for the moment before the inline script runs, and for anyone with
+   JavaScript disabled: follow the system preference unless light was chosen. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+    color-scheme: dark;
+  }
 }
 
 @theme inline {
@@ -17,24 +43,15 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-    color-scheme: dark;
-  }
-}
-
 body {
   background: var(--background);
   color: var(--foreground);
-  /* The scaffold hard-coded Arial here, which threw away the Geist fonts the
-     layout is already loading. */
+  /* The scaffold hard-coded Arial here, discarding the Geist fonts the layout
+     already loads. */
   font-family: var(--font-geist-sans), system-ui, sans-serif;
 }
 
-/* Belt and braces alongside `color-scheme`: an <option> is rendered by the OS
-   and does not inherit from its <select>, so it needs colours of its own. */
+/* An <option> is drawn by the OS and does not inherit from its <select>. */
 select,
 option {
   background-color: var(--background);

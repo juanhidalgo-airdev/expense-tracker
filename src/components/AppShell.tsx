@@ -6,6 +6,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { ReactNode } from "react";
 import { api } from "../../convex/_generated/api";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 /**
  * Application shell.
@@ -79,6 +80,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </nav>
 
           <div className="ml-auto flex items-center gap-3">
+            <ThemeToggle />
             {user && (
               <span className="hidden text-sm text-black/60 sm:inline dark:text-white/60">
                 {user.name ?? user.email}

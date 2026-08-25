@@ -26,7 +26,22 @@ export default function RootLayout({
 }>) {
   return (
     <ConvexAuthNextjsServerProvider>
-      <html lang="en">
+      {/* The inline script below mutates <html> before React hydrates, which
+          React would otherwise report as a mismatch. */}
+      <html lang="en" suppressHydrationWarning>
+        <head>
+          {/*
+            Runs before first paint, so the page never renders in one theme and
+            then snaps to the other. A saved choice wins; otherwise fall back to
+            the system preference. Deliberately inline and blocking — deferring
+            it is exactly what causes the flash.
+          */}
+          <script
+            dangerouslySetInnerHTML={{
+              __html: `(function(){try{var t=localStorage.getItem("theme");if(t!=="light"&&t!=="dark"){t=window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"}document.documentElement.dataset.theme=t}catch(e){document.documentElement.dataset.theme="light"}})()`,
+            }}
+          />
+        </head>
         <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
           <ConvexClientProvider>{children}</ConvexClientProvider>
         </body>
