@@ -54,3 +54,6 @@ skills-lock.json
 
 # Convex CLI also vendors skills here.
 .claude/skills/
+
+.vercel
+.env*

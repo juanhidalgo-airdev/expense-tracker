@@ -269,7 +269,7 @@ Whichever we pick, the URL is never logged, never put in a query string we contr
 
 | Environment | Convex | Frontend | Purpose |
 | --- | --- | --- | --- |
-| Local dev | `npx convex dev` (personal dev deployment) | `next dev` | Day-to-day work. |
+| Local dev | `npx convex dev` — `brainy-toucan-176` | `next dev` | Day-to-day work. |
 | Production | Convex `prod` deployment (`npx convex deploy`) | Vercel production | The submitted URL. **Mandatory and fully functional** — the written brief says it gets tested before anything else. **[Brief]** |
 
 A staging tier is deliberately skipped for an exercise of this size; it would be the first thing added for a real client engagement.

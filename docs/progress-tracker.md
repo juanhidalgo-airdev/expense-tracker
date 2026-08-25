@@ -12,9 +12,9 @@
 | Clarifying questions sent | ✅ 2026-08-23 |
 | Client answers received | ✅ 2026-08-24 — recorded in `questions.md` |
 | Development plan created | ✅ `development-plan.md` |
-| Phase 1 — Foundation and deployed skeleton | 🟡 Verified locally end to end. Remaining: GitHub repo, Vercel project, Convex prod — all need account access |
+| Phase 1 — Foundation and deployed skeleton | 🟡 Everything deployed. Exit criterion (live sign-in) blocked only by Vercel Deployment Protection |
 | Phase 2 — Data model, authorization, seed | ✅ Schema, permissions, transitions, events, money/dates, full seed, 78 tests green |
-| Phase 3 — Expense submission | ⬜ Not started |
+| Phase 3 — Expense submission | 🟡 Backend done (receipts, create/update/submit/withdraw, duplicate warning). Form UI next |
 | Phase 4 — Employee expense views | ⬜ Not started |
 | Phase 5 — Manager review and decisions | ⬜ Not started |
 | Phase 6 — Polish, edge cases, e2e | ⬜ Not started |
@@ -53,8 +53,8 @@ Settled before planning. Full reasoning in `questions.md`; these are the ones ev
 | Convex deployment | ✅ `dev:brainy-toucan-176` — team `juan-hidalgo-lozano`, project `expense-tracker`. `JWT_PRIVATE_KEY`, `JWKS`, `SITE_URL` set |
 | Self-service sign-up blocked | ✅ Verified by calling `auth:signIn` with `flow: "signUp"` directly — rejected, no user created |
 | GitHub repo | ✅ `juanhidalgo-airdev/expense-tracker` — **private**, flip to public in Phase 8 |
-| Convex prod | ✅ `clever-mosquito-451`. Auth keys **not yet set** — needs the Vercel origin for `SITE_URL` |
-| Vercel | ⬜ Dashboard import — needs a production deploy key from the Convex dashboard |
+| Convex prod | ✅ `clever-mosquito-451` — functions deployed, auth keys + SITE_URL set, seeded (4 users, 5 categories, 6 expenses) |
+| Vercel | 🟡 Deployed to `https://expense-tracker-hidalgo1.vercel.app` via CLI. **Blocked: Deployment Protection is ON**, so the URL redirects to Vercel SSO and a reviewer cannot reach it |
 
 ## Verification findings (Phase 1)
 
