@@ -15,6 +15,7 @@ type Row = {
   expenseDate: string;
   status: "draft" | "submitted" | "approved" | "rejected";
   submitterName: string;
+  isMine: boolean;
 };
 
 const STATUS_FILTERS = [
@@ -35,11 +36,16 @@ const STATUS_FILTERS = [
 export function ExpenseList({
   rows,
   showSubmitter = false,
+  showStatusFilter = true,
+  markMine = false,
   emptyTitle,
   emptyBody,
 }: {
   rows: Row[] | undefined;
   showSubmitter?: boolean;
+  showStatusFilter?: boolean;
+  /** In the review queue, flag the manager own rows as not theirs to decide. */
+  markMine?: boolean;
   emptyTitle: string;
   emptyBody: string;
 }) {
@@ -64,6 +70,7 @@ export function ExpenseList({
   return (
     <>
       <div className="mt-6 flex flex-wrap items-center gap-3">
+        {showStatusFilter && (
         <div className="flex flex-wrap gap-1">
           {STATUS_FILTERS.map((filter) => (
             <button
@@ -81,6 +88,7 @@ export function ExpenseList({
             </button>
           ))}
         </div>
+        )}
 
         <label className="ml-auto flex items-center gap-2 text-sm">
           <span className="sr-only">Search expenses</span>
@@ -122,6 +130,11 @@ export function ExpenseList({
                   <p className="mt-0.5 text-xs text-black/60 dark:text-white/60">
                     {showSubmitter && <>{row.submitterName} · </>}
                     {formatCalendarDate(row.expenseDate)} · {row.categoryLabel}
+                    {markMine && row.isMine && (
+                      <span className="ml-2 rounded-full bg-black/5 px-2 py-0.5 text-[11px] font-medium dark:bg-white/10">
+                        Your own — another manager must decide
+                      </span>
+                    )}
                   </p>
                 </div>
                 <span className="text-sm font-medium tabular-nums">

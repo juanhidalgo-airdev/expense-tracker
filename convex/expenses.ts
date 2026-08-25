@@ -1,9 +1,9 @@
 import { ConvexError, v } from "convex/values";
 import { Doc, Id } from "./_generated/dataModel";
-import { mutation, query } from "./_generated/server";
-import { requireUser } from "./lib/auth";
+import { MutationCtx, mutation, query } from "./_generated/server";
+import { requireManager, requireUser } from "./lib/auth";
 import { diffFields, recordEvent } from "./lib/events";
-import { canEdit, canView, canWithdraw, capabilitiesFor } from "./lib/permissions";
+import { canDecide, canEdit, canView, canWithdraw, capabilitiesFor } from "./lib/permissions";
 import { assertTransition } from "./lib/transitions";
 import {
   assertCategoryUsable,
@@ -40,6 +40,8 @@ const expenseSummary = v.object({
   ),
   submittedAt: v.optional(v.number()),
   submitterName: v.string(),
+  /** Lets the queue mark a manager's own expense as not theirs to decide. */
+  isMine: v.boolean(),
 });
 
 /**
@@ -75,6 +77,70 @@ export const listMine = query({
           status: expense.status,
           submittedAt: expense.submittedAt,
           submitterName: user.name ?? user.email ?? "Unknown",
+          isMine: true,
+        };
+      }),
+    );
+  },
+});
+
+/**
+ * The manager review queue.
+ *
+ * "Pending" is every submitted expense in the company, oldest first — whatever
+ * has been waiting longest is the most urgent. There is no reporting line to
+ * consult: the client's answer was that any manager can decide any expense.
+ *
+ * A manager's OWN pending expense appears here. That is deliberate: it is
+ * genuinely awaiting review, and hiding it would misrepresent the queue. It is
+ * flagged `isMine` so the UI can show that someone else has to act on it, and
+ * the decision mutation refuses it regardless.
+ */
+export const listForReview = query({
+  args: { scope: v.union(v.literal("pending"), v.literal("decided")) },
+  returns: v.array(expenseSummary),
+  handler: async (ctx, args) => {
+    const manager = await requireManager(ctx);
+
+    const expenses =
+      args.scope === "pending"
+        ? await ctx.db
+            .query("expenses")
+            .withIndex("by_status_and_submittedAt", (q) => q.eq("status", "submitted"))
+            // Ascending: longest-waiting first.
+            .order("asc")
+            .collect()
+        : (
+            await Promise.all(
+              (["approved", "rejected"] as const).map((status) =>
+                ctx.db
+                  .query("expenses")
+                  .withIndex("by_status_and_submittedAt", (q) => q.eq("status", status))
+                  .collect(),
+              ),
+            )
+          )
+            .flat()
+            .sort((a, b) => (b.decidedAt ?? 0) - (a.decidedAt ?? 0));
+
+    return await Promise.all(
+      expenses.map(async (expense) => {
+        const [category, submitter] = await Promise.all([
+          ctx.db.get(expense.categoryId),
+          ctx.db.get(expense.userId),
+        ]);
+
+        return {
+          _id: expense._id,
+          description: expense.description,
+          amountMinor: expense.amountMinor,
+          currency: expense.currency,
+          categoryLabel: category?.label ?? "Uncategorised",
+          expenseDate: expense.expenseDate,
+          status: expense.status,
+          submittedAt: expense.submittedAt,
+          submitterName: submitter?.name ?? submitter?.email ?? "Unknown",
+          isMine: expense.userId === manager._id,
         };
       }),
     );
@@ -458,6 +524,89 @@ export const withdraw = mutation({
     return null;
   },
 });
+
+/**
+ * Approve an expense. Decisions are final — the client ruled out reversal —
+ * so this is deliberately a one-way door.
+ */
+export const approve = mutation({
+  args: { expenseId: v.id("expenses"), note: v.optional(v.string()) },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    await decide(ctx, args.expenseId, "approved", assertValidNote(args.note, "Note"));
+    return null;
+  },
+});
+
+/** Reject an expense. The note is required and must say something. */
+export const reject = mutation({
+  args: { expenseId: v.id("expenses"), note: v.string() },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const note = assertValidNote(args.note, "Reason");
+    if (note === undefined) {
+      // assertValidNote returns undefined for whitespace-only input, which is
+      // fine for an optional approval note and not fine here.
+      throw new ConvexError("Give a reason so the employee knows what to fix.");
+    }
+
+    await decide(ctx, args.expenseId, "rejected", note);
+    return null;
+  },
+});
+
+/**
+ * The one place a decision is recorded.
+ *
+ * Both the authorization check and the status check happen after re-reading
+ * the expense inside the transaction. Convex mutations are serializable with
+ * automatic retry on conflict, so that is genuinely sufficient for two
+ * managers clicking at the same moment: one commits, the other re-reads the
+ * new status and fails cleanly with "already been decided". No compare-and-set
+ * column, no advisory lock.
+ */
+async function decide(
+  ctx: MutationCtx,
+  expenseId: Id<"expenses">,
+  outcome: "approved" | "rejected",
+  note: string | undefined,
+) {
+  const user = await requireManager(ctx);
+
+  const expense = await ctx.db.get(expenseId);
+  if (expense === null) {
+    throw new ConvexError("Expense not found.");
+  }
+
+  // Checked before the status guard so the message is the useful one: a manager
+  // looking at their own expense should be told why, not that it is pending.
+  if (expense.userId === user._id) {
+    throw new ConvexError(
+      "You cannot decide your own expense. Another manager needs to review it.",
+    );
+  }
+
+  if (!canDecide(user, expense)) {
+    assertTransition(expense.status, outcome);
+    throw new ConvexError("This expense is not awaiting a decision.");
+  }
+
+  await ctx.db.patch(expenseId, {
+    status: outcome,
+    decidedAt: Date.now(),
+    decidedBy: user._id,
+    decisionNote: note,
+  });
+
+  await recordEvent(ctx, {
+    expenseId,
+    actorId: user._id,
+    type: outcome,
+    note,
+    fromStatus: "submitted",
+    toStatus: outcome,
+  });
+}
 
 async function requireOwnEditable(
   ctx: { db: { get: (id: Doc<"expenses">["_id"]) => Promise<Doc<"expenses"> | null> } },

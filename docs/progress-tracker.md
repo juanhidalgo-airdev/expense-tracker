@@ -16,7 +16,7 @@
 | Phase 2 — Data model, authorization, seed | ✅ Schema, permissions, transitions, events, money/dates, full seed, 78 tests green |
 | Phase 3 — Expense submission | ✅ Backend + form UI, receipt upload, duplicate warning. Verified in browser end to end |
 | Phase 4 — Employee expense views | ✅ Detail view, receipt viewer, history timeline, withdraw/edit/resubmit, status filter + search |
-| Phase 5 — Manager review and decisions | ⬜ Not started |
+| Phase 5 — Manager review and decisions | ✅ Queue with Pending/Decided tabs, approve/reject with confirmation, self-approval blocked, 116 tests |
 | Phase 6 — Polish, edge cases, e2e | ⬜ Not started |
 | Phase 7 — Security audit | ⬜ Not started |
 | Phase 8 — Deliverable and submission | ⬜ Not started |

@@ -8,6 +8,7 @@ import { useState } from "react";
 import { api } from "../../../../convex/_generated/api";
 import { Id } from "../../../../convex/_generated/dataModel";
 import { AppShell } from "@/components/AppShell";
+import { DecisionPanel } from "@/components/DecisionPanel";
 import { HistoryTimeline } from "@/components/HistoryTimeline";
 import { ReceiptViewer } from "@/components/ReceiptViewer";
 import { StatusBadge } from "@/components/StatusBadge";
@@ -20,6 +21,7 @@ export default function ExpenseDetailPage() {
   const router = useRouter();
 
   const expense = useQuery(api.expenses.get, { expenseId });
+  const viewer = useQuery(api.users.getCurrentUser);
   const withdraw = useMutation(api.expenses.withdraw);
   const submit = useMutation(api.expenses.submit);
 
@@ -172,6 +174,24 @@ export default function ExpenseDetailPage() {
         <p className="mt-2 text-xs text-black/50 dark:text-white/50">
           Pending expenses cannot be edited directly — withdraw it first, so a manager never
           approves something other than what they read.
+        </p>
+      )}
+
+      {expense.canDecide && (
+        <DecisionPanel
+          expenseId={expense._id}
+          amountMinor={expense.amountMinor}
+          currency={expense.currency}
+          submitterName={expense.submitterName}
+        />
+      )}
+
+      {/* A manager looking at their own pending expense: visible in the queue,
+          not theirs to act on. Saying so beats an absent button. Employees get
+          no such message — for them there was never a button to explain. */}
+      {viewer?.role === "manager" && expense.isMine && expense.status === "submitted" && (
+        <p className="mt-8 rounded-lg border border-black/10 px-4 py-3 text-sm text-black/60 dark:border-white/15 dark:text-white/60">
+          This is your own expense, so another manager has to decide it.
         </p>
       )}
 
