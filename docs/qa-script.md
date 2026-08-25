@@ -170,3 +170,21 @@ Sanity check before trusting a run: `#171717` on `#FFB238` must come out at **9.
 | 11.3 | After any colour change | Re-run before shipping |
 
 **Known result:** `text-black/50` at 12px measured 4.0:1 on white and failed, while the same opacity passed in dark mode (5.4:1 on near-black). All muted text is now `/60`. Light mode is the stricter of the two themes here — do not assume checking one covers the other.
+
+---
+
+## QA run log
+
+**25 Aug 2026, against production** (https://expense-tracker-opal-pi-28.vercel.app), all four seeded accounts, both themes, desktop and 375px.
+
+Every section walked. One defect found and fixed during the run:
+
+- **Sign-out landed on the error boundary** instead of the sign-in page. `signOut()` resolved, React re-rendered while still on `/expenses`, and `listMine` threw before the redirect landed. Third instance of the same root cause (issuing a query the viewer may not make), so it now has a named home: `useIsAuthed()`, applied to every authenticated query. Verified by sampling the page every 500ms through a real sign-out.
+
+Also corrected: `.env.example` pointed at `npx @convex-dev/auth` while the README says `npm run setup:auth`.
+
+**Not fully executable in this environment:**
+
+- **6.1–6.2, two simultaneous sessions.** One browser profile means one session at a time, so the true simultaneous race could not be driven through the UI. The sequential half was verified — a second manager opening an already-decided expense gets no decision panel and the first decision stands. The genuinely concurrent case is covered by an integration test asserting the second mutation throws *already been decided*.
+- **10.3, full clean-clone run.** Clone, `npm install` and `npm test` were executed from the public repo: **126 tests pass with no environment variables at all**. The remaining steps (`npx convex dev`) need an interactive login and would create a new cloud project, so the commands were verified to exist and be wired rather than run.
+- **7.3, machine timezone change.** Not performed. The browser ran in America/Mexico_City (UTC−6) throughout and dates rendered as stored, which exercises the same failure mode.
