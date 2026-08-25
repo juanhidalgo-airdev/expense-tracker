@@ -79,7 +79,7 @@ Checked against the installed package rather than the docs, and two documented a
 | | |
 | --- | --- |
 | Production app | `https://expense-tracker-opal-pi-28.vercel.app` |
-| Vercel scope | `juanhidalgo-3245s-projects` (personal). Deploys are `npx vercel deploy --prod` — **no auto-deploy on push**, because the Vercel login is a different identity from the GitHub account that owns the repo |
+| Vercel scope | `juanhidalgo-3245s-projects`. **Git-connected to `juanhidalgo-airdev/expense-tracker`** — pushes to `main` deploy to production automatically, PRs get preview deployments |
 | Convex prod | `clever-mosquito-451` |
 | Convex dev | `brainy-toucan-176` |
 | Repo | `juanhidalgo-airdev/expense-tracker` (private until Phase 8) |
