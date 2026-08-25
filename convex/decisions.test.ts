@@ -58,6 +58,8 @@ async function setup() {
   return { t, ...ids };
 }
 
+const PAGE = { numItems: 50, cursor: null };
+
 function args(category: Id<"categories">, storageId: Id<"_storage">, submit = true) {
   return {
     description: "Taxi to airport",
@@ -253,7 +255,7 @@ describe("the review queue", () => {
   test("refuses an employee outright", async () => {
     const { t, employee } = await setup();
     await expect(
-      t.withIdentity({ subject: employee }).query(api.expenses.listForReview, { scope: "pending" }),
+      t.withIdentity({ subject: employee }).query(api.expenses.listForReview, { scope: "pending", paginationOpts: PAGE }),
     ).rejects.toThrow(/only managers/i);
   });
 
@@ -268,9 +270,11 @@ describe("the review queue", () => {
       description: "Second submission",
     });
 
-    const queue = await t
-      .withIdentity({ subject: manager })
-      .query(api.expenses.listForReview, { scope: "pending" });
+    const queue = (
+      await t
+        .withIdentity({ subject: manager })
+        .query(api.expenses.listForReview, { scope: "pending", paginationOpts: PAGE })
+    ).page;
 
     expect(queue).toHaveLength(2);
     expect(queue.map((row) => row.submitterName)).toEqual(["Employee", "Other Employee"]);
@@ -280,9 +284,11 @@ describe("the review queue", () => {
     const { t, manager, category, storageId } = await setup();
     await t.withIdentity({ subject: manager }).mutation(api.expenses.create, args(category, storageId));
 
-    const queue = await t
-      .withIdentity({ subject: manager })
-      .query(api.expenses.listForReview, { scope: "pending" });
+    const queue = (
+      await t
+        .withIdentity({ subject: manager })
+        .query(api.expenses.listForReview, { scope: "pending", paginationOpts: PAGE })
+    ).page;
 
     expect(queue[0].isMine).toBe(true);
   });
@@ -293,9 +299,11 @@ describe("the review queue", () => {
       .withIdentity({ subject: employee })
       .mutation(api.expenses.create, args(category, storageId, false));
 
-    const queue = await t
-      .withIdentity({ subject: manager })
-      .query(api.expenses.listForReview, { scope: "pending" });
+    const queue = (
+      await t
+        .withIdentity({ subject: manager })
+        .query(api.expenses.listForReview, { scope: "pending", paginationOpts: PAGE })
+    ).page;
 
     expect(queue).toHaveLength(0);
   });
@@ -309,7 +317,7 @@ describe("the review queue", () => {
     await t.withIdentity({ subject: manager }).mutation(api.expenses.approve, { expenseId });
     const asManager = t.withIdentity({ subject: manager });
 
-    expect(await asManager.query(api.expenses.listForReview, { scope: "pending" })).toHaveLength(0);
-    expect(await asManager.query(api.expenses.listForReview, { scope: "decided" })).toHaveLength(1);
+    expect((await asManager.query(api.expenses.listForReview, { scope: "pending", paginationOpts: PAGE })).page).toHaveLength(0);
+    expect((await asManager.query(api.expenses.listForReview, { scope: "decided", paginationOpts: PAGE })).page).toHaveLength(1);
   });
 });

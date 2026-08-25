@@ -53,6 +53,8 @@ async function setup() {
   return { t, ...ids };
 }
 
+const PAGE = { numItems: 50, cursor: null };
+
 function validArgs(category: Id<"categories">, storageId: Id<"_storage">, submit = false) {
   return {
     description: "Taxi to airport",
@@ -167,7 +169,7 @@ describe("listMine", () => {
       description: "Someone else's expense",
     });
 
-    const mine = await t.withIdentity({ subject: owner }).query(api.expenses.listMine);
+    const mine = (await t.withIdentity({ subject: owner }).query(api.expenses.listMine, { paginationOpts: PAGE })).page;
 
     expect(mine).toHaveLength(1);
     expect(mine[0].description).toBe("Taxi to airport");
@@ -180,7 +182,7 @@ describe("listMine", () => {
       .withIdentity({ subject: owner })
       .mutation(api.expenses.create, validArgs(category, storageId));
 
-    const managerList = await t.withIdentity({ subject: manager }).query(api.expenses.listMine);
+    const managerList = (await t.withIdentity({ subject: manager }).query(api.expenses.listMine, { paginationOpts: PAGE })).page;
     expect(managerList).toHaveLength(0);
   });
 });

@@ -105,7 +105,7 @@ docs/                planning, decisions, QA script, security audit
 
 ## Decisions and deviations
 
-The reasoning behind the build is in [`docs/`](docs/): [what was built](docs/feature-summary.md), [how and why](docs/infrastructure.md), [the questions and answers that shaped it](docs/questions.md), [the plan](docs/development-plan.md), [manual QA](docs/qa-script.md), and the [security audit](docs/security-audit.md).
+The reasoning behind the build is in [`docs/`](docs/): [what was built](docs/feature-summary.md), [how and why](docs/infrastructure.md), [the questions and answers that shaped it](docs/questions.md), [the plan](docs/development-plan.md), [manual QA](docs/qa-script.md), the [security audit](docs/security-audit.md), and [how it scales](docs/scalability.md).
 
 Three things differ from the brief, deliberately:
 

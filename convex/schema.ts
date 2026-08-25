@@ -121,6 +121,13 @@ export default defineSchema({
     .index("by_user_and_status", ["userId", "status"])
     // The manager queue: every pending expense, oldest first.
     .index("by_status_and_submittedAt", ["status", "submittedAt"])
+    /**
+     * The Decided tab, newest first. Indexed on `decidedAt` alone rather than
+     * on status, because "decided" spans both approved and rejected and a
+     * paginated query cannot union two index scans. Undecided expenses have no
+     * `decidedAt`, and a range starting above zero excludes them.
+     */
+    .index("by_decidedAt", ["decidedAt"])
     // Duplicate warning: same person, same day, same amount.
     .index("by_user_and_expenseDate", ["userId", "expenseDate"]),
 

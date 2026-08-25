@@ -1,10 +1,12 @@
 "use client";
 
-import { useQuery } from "convex/react";
+import { usePaginatedQuery, useQuery } from "convex/react";
 import { useState } from "react";
 import { api } from "../../../convex/_generated/api";
 import { AppShell } from "@/components/AppShell";
 import { ExpenseList } from "@/components/ExpenseList";
+
+const PAGE_SIZE = 25;
 
 /**
  * The manager review queue.
@@ -19,11 +21,14 @@ export default function ReviewPage() {
   const isManager = currentUser?.role === "manager";
 
   // "skip" matters: listForReview throws for a non-manager, and a throwing
-  // useQuery takes the whole render down rather than falling through to the
-  // guard below. Never issue a query the viewer is not allowed to make.
-  const rows = useQuery(api.expenses.listForReview, isManager ? { scope } : "skip");
+  // query takes the whole render down rather than falling through to the guard
+  // below. Never issue a query the viewer is not allowed to make.
+  const { results, status: loadStatus, loadMore } = usePaginatedQuery(
+    api.expenses.listForReview,
+    isManager ? { scope } : "skip",
+    { initialNumItems: PAGE_SIZE },
+  );
 
-  // The route is a UX affordance; listForReview refuses non-managers anyway.
   if (currentUser !== undefined && currentUser !== null && !isManager) {
     return (
       <AppShell>
@@ -46,7 +51,7 @@ export default function ReviewPage() {
       <p className="mt-1 text-sm text-black/60 dark:text-white/60">
         {scope === "pending"
           ? "Everything awaiting a decision, longest wait first."
-          : "Expenses that have already been decided."}
+          : "Expenses that have already been decided, most recent first."}
       </p>
 
       <div
@@ -73,9 +78,11 @@ export default function ReviewPage() {
       </div>
 
       <ExpenseList
-        rows={rows}
+        rows={loadStatus === "LoadingFirstPage" ? undefined : results}
+        isLoading={loadStatus === "LoadingMore"}
+        canLoadMore={loadStatus === "CanLoadMore"}
+        onLoadMore={() => loadMore(PAGE_SIZE)}
         showSubmitter
-        showStatusFilter={scope === "decided"}
         markMine
         emptyTitle={scope === "pending" ? "Nothing to review" : "Nothing decided yet"}
         emptyBody={

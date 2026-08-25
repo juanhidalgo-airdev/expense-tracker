@@ -1,10 +1,12 @@
+import { paginationOptsValidator } from "convex/server";
 import { ConvexError, v } from "convex/values";
 import { Doc, Id } from "./_generated/dataModel";
-import { MutationCtx, mutation, query } from "./_generated/server";
+import { MutationCtx, QueryCtx, mutation, query } from "./_generated/server";
 import { requireManager, requireUser } from "./lib/auth";
 import { diffFields, recordEvent } from "./lib/events";
 import { canDecide, canEdit, canView, canWithdraw, capabilitiesFor } from "./lib/permissions";
 import { assertTransition } from "./lib/transitions";
+import { statusValidator } from "./schema";
 import {
   assertCategoryUsable,
   assertReceiptAcceptable,
@@ -24,25 +26,18 @@ const EDITABLE_FIELDS = [
   "receiptStorageId",
 ];
 
-/** Shape returned to the client for list rows. */
-const expenseSummary = v.object({
-  _id: v.id("expenses"),
-  description: v.string(),
-  amountMinor: v.number(),
-  currency: v.string(),
-  categoryLabel: v.string(),
-  expenseDate: v.string(),
-  status: v.union(
-    v.literal("draft"),
-    v.literal("submitted"),
-    v.literal("approved"),
-    v.literal("rejected"),
-  ),
-  submittedAt: v.optional(v.number()),
-  submitterName: v.string(),
-  /** Lets the queue mark a manager's own expense as not theirs to decide. */
-  isMine: v.boolean(),
-});
+/**
+ * Categories, fetched once per query and reused for every row.
+ *
+ * Previously each row did its own `db.get` for its category — invisible at six
+ * rows, ~2N point reads at scale, on a subscription that re-runs on every
+ * write. There are a handful of categories, so one read of the table beats one
+ * read per expense.
+ */
+async function categoryLabels(ctx: QueryCtx): Promise<Map<string, string>> {
+  const categories = await ctx.db.query("categories").collect();
+  return new Map(categories.map((category) => [category._id, category.label]));
+}
 
 /**
  * The signed-in user's own expenses, newest first.
@@ -51,36 +46,49 @@ const expenseSummary = v.object({
  * cannot accidentally return another user's row, which makes the scoping a
  * property of the query rather than of a line of JavaScript that could be
  * edited out later.
+ *
+ * Paginated, and the status filter is applied by the server on an index rather
+ * than by the client over a full download.
+ *
+ * No `returns` validator here: a paginated query returns Convex's own page
+ * envelope, and hand-writing that shape invites it to drift from the real one.
  */
 export const listMine = query({
-  args: {},
-  returns: v.array(expenseSummary),
-  handler: async (ctx) => {
+  args: {
+    paginationOpts: paginationOptsValidator,
+    status: v.optional(statusValidator),
+  },
+  handler: async (ctx, args) => {
     const user = await requireUser(ctx);
 
-    const expenses = await ctx.db
-      .query("expenses")
-      .withIndex("by_user", (q) => q.eq("userId", user._id))
-      .order("desc")
-      .collect();
+    const query =
+      args.status === undefined
+        ? ctx.db.query("expenses").withIndex("by_user", (q) => q.eq("userId", user._id))
+        : ctx.db
+            .query("expenses")
+            .withIndex("by_user_and_status", (q) =>
+              q.eq("userId", user._id).eq("status", args.status!),
+            );
 
-    return await Promise.all(
-      expenses.map(async (expense) => {
-        const category = await ctx.db.get(expense.categoryId);
-        return {
-          _id: expense._id,
-          description: expense.description,
-          amountMinor: expense.amountMinor,
-          currency: expense.currency,
-          categoryLabel: category?.label ?? "Uncategorised",
-          expenseDate: expense.expenseDate,
-          status: expense.status,
-          submittedAt: expense.submittedAt,
-          submitterName: user.name ?? user.email ?? "Unknown",
-          isMine: true,
-        };
-      }),
-    );
+    const result = await query.order("desc").paginate(args.paginationOpts);
+    const labels = await categoryLabels(ctx);
+    const submitterName = user.name ?? user.email ?? "Unknown";
+
+    return {
+      ...result,
+      page: result.page.map((expense) => ({
+        _id: expense._id,
+        description: expense.description,
+        amountMinor: expense.amountMinor,
+        currency: expense.currency,
+        categoryLabel: labels.get(expense.categoryId) ?? "Uncategorised",
+        expenseDate: expense.expenseDate,
+        status: expense.status,
+        submittedAt: expense.submittedAt,
+        submitterName,
+        isMine: true,
+      })),
+    };
   },
 });
 
@@ -97,53 +105,58 @@ export const listMine = query({
  * the decision mutation refuses it regardless.
  */
 export const listForReview = query({
-  args: { scope: v.union(v.literal("pending"), v.literal("decided")) },
-  returns: v.array(expenseSummary),
+  args: {
+    paginationOpts: paginationOptsValidator,
+    scope: v.union(v.literal("pending"), v.literal("decided")),
+  },
   handler: async (ctx, args) => {
     const manager = await requireManager(ctx);
 
-    const expenses =
+    const result =
       args.scope === "pending"
         ? await ctx.db
             .query("expenses")
             .withIndex("by_status_and_submittedAt", (q) => q.eq("status", "submitted"))
             // Ascending: longest-waiting first.
             .order("asc")
-            .collect()
-        : (
-            await Promise.all(
-              (["approved", "rejected"] as const).map((status) =>
-                ctx.db
-                  .query("expenses")
-                  .withIndex("by_status_and_submittedAt", (q) => q.eq("status", status))
-                  .collect(),
-              ),
-            )
-          )
-            .flat()
-            .sort((a, b) => (b.decidedAt ?? 0) - (a.decidedAt ?? 0));
+            .paginate(args.paginationOpts)
+        : await ctx.db
+            .query("expenses")
+            // "Decided" spans approved and rejected, which a paginated query
+            // cannot union across two index scans. Ordering by `decidedAt`
+            // covers both, and the range above zero drops everything undecided,
+            // since those documents have no `decidedAt` at all.
+            .withIndex("by_decidedAt", (q) => q.gt("decidedAt", 0))
+            .order("desc")
+            .paginate(args.paginationOpts);
 
-    return await Promise.all(
-      expenses.map(async (expense) => {
-        const [category, submitter] = await Promise.all([
-          ctx.db.get(expense.categoryId),
-          ctx.db.get(expense.userId),
-        ]);
+    const labels = await categoryLabels(ctx);
 
-        return {
-          _id: expense._id,
-          description: expense.description,
-          amountMinor: expense.amountMinor,
-          currency: expense.currency,
-          categoryLabel: category?.label ?? "Uncategorised",
-          expenseDate: expense.expenseDate,
-          status: expense.status,
-          submittedAt: expense.submittedAt,
-          submitterName: submitter?.name ?? submitter?.email ?? "Unknown",
-          isMine: expense.userId === manager._id,
-        };
-      }),
+    // Submitters still need a read each: unlike categories they are unbounded,
+    // and this batches the distinct ones rather than repeating per row.
+    const submitterIds = [...new Set(result.page.map((expense) => expense.userId))];
+    const submitters = new Map(
+      (await Promise.all(submitterIds.map((id) => ctx.db.get(id)))).map((user, index) => [
+        submitterIds[index],
+        user?.name ?? user?.email ?? "Unknown",
+      ]),
     );
+
+    return {
+      ...result,
+      page: result.page.map((expense) => ({
+        _id: expense._id,
+        description: expense.description,
+        amountMinor: expense.amountMinor,
+        currency: expense.currency,
+        categoryLabel: labels.get(expense.categoryId) ?? "Uncategorised",
+        expenseDate: expense.expenseDate,
+        status: expense.status,
+        submittedAt: expense.submittedAt,
+        submitterName: submitters.get(expense.userId) ?? "Unknown",
+        isMine: expense.userId === manager._id,
+      })),
+    };
   },
 });
 

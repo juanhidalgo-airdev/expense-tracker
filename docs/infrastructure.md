@@ -83,7 +83,7 @@ Conventions:
 - Anything that must not be callable from a browser is an `internalMutation` / `internalQuery`.
 - Queries never `filter()` over a whole table; they `withIndex()` (see §5). This is both a performance and a correctness habit — an index-scoped read cannot accidentally return another user's row.
 - Mutations are pure database work. Nothing in v1 touches the outside world — there is no email (**Q24**, ruled out) — so no `action` is needed at all beyond the file-upload path. Should notification ever land, it goes in an `action` scheduled from the mutation rather than inside it, so the transaction stays clean.
-- Pagination via `paginationOptsValidator` and `.paginate()` on both lists. An internal tool still accumulates thousands of rows in a year, and retrofitting pagination is worse than having it.
+- Pagination via `paginationOptsValidator` and `.paginate()` on both list queries, with the status filter applied server-side on an index. Per-row lookups are batched rather than repeated. Search remains client-side over loaded rows — a deliberate limit, since real search needs a Convex search index. See `scalability.md` for the full picture and the honest limits.
 
 ---
 
