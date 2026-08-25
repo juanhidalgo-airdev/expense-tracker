@@ -21,17 +21,24 @@ export function AppShell({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
 
+  const isManager = user?.role === "manager";
+
+  // Review comes first for managers: reviewing is what they open this app to
+  // do, and work waiting on them outranks their own expenses.
   const links = [
+    ...(isManager ? [{ href: "/review", label: "Review" }] : []),
     { href: "/expenses", label: "My expenses" },
     { href: "/expenses/new", label: "New expense" },
-    ...(user?.role === "manager" ? [{ href: "/review", label: "Review" }] : []),
   ];
+
+  /** The wordmark goes wherever "home" means for this role. */
+  const homeHref = isManager ? "/review" : "/expenses";
 
   return (
     <div className="min-h-screen">
       <header className="border-b border-black/10 dark:border-white/15">
         <div className="mx-auto flex max-w-4xl flex-wrap items-center gap-x-6 gap-y-3 px-4 py-3">
-          <Link href="/expenses" className="text-sm font-semibold tracking-tight">
+          <Link href={homeHref} className="text-sm font-semibold tracking-tight">
             Expense Tracker
           </Link>
 
