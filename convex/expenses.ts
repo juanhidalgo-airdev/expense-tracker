@@ -1,9 +1,9 @@
 import { ConvexError, v } from "convex/values";
-import { Doc } from "./_generated/dataModel";
+import { Doc, Id } from "./_generated/dataModel";
 import { mutation, query } from "./_generated/server";
 import { requireUser } from "./lib/auth";
 import { diffFields, recordEvent } from "./lib/events";
-import { canEdit, canWithdraw } from "./lib/permissions";
+import { canEdit, canView, canWithdraw, capabilitiesFor } from "./lib/permissions";
 import { assertTransition } from "./lib/transitions";
 import {
   assertCategoryUsable,
@@ -75,6 +75,158 @@ export const listMine = query({
           status: expense.status,
           submittedAt: expense.submittedAt,
           submitterName: user.name ?? user.email ?? "Unknown",
+        };
+      }),
+    );
+  },
+});
+
+/**
+ * A single expense, with the capability flags the UI renders from.
+ *
+ * Returns null rather than throwing when the caller may not see it, and
+ * returns the same null when it does not exist — so a caller cannot probe for
+ * which expense ids are real.
+ */
+export const get = query({
+  args: { expenseId: v.id("expenses") },
+  returns: v.union(
+    v.object({
+      _id: v.id("expenses"),
+      description: v.string(),
+      amountMinor: v.number(),
+      currency: v.string(),
+      categoryId: v.id("categories"),
+      categoryLabel: v.string(),
+      expenseDate: v.string(),
+      noteToApprover: v.optional(v.string()),
+      hasReceipt: v.boolean(),
+      status: v.union(
+        v.literal("draft"),
+        v.literal("submitted"),
+        v.literal("approved"),
+        v.literal("rejected"),
+      ),
+      submittedAt: v.optional(v.number()),
+      decidedAt: v.optional(v.number()),
+      decidedByName: v.optional(v.string()),
+      decisionNote: v.optional(v.string()),
+      submitterName: v.string(),
+      isMine: v.boolean(),
+      canEdit: v.boolean(),
+      canWithdraw: v.boolean(),
+      canDecide: v.boolean(),
+    }),
+    v.null(),
+  ),
+  handler: async (ctx, args) => {
+    const user = await requireUser(ctx);
+
+    const expense = await ctx.db.get(args.expenseId);
+    if (expense === null || !canView(user, expense)) {
+      return null;
+    }
+
+    const [category, submitter, decider] = await Promise.all([
+      ctx.db.get(expense.categoryId),
+      ctx.db.get(expense.userId),
+      expense.decidedBy ? ctx.db.get(expense.decidedBy) : Promise.resolve(null),
+    ]);
+
+    return {
+      _id: expense._id,
+      description: expense.description,
+      amountMinor: expense.amountMinor,
+      currency: expense.currency,
+      categoryId: expense.categoryId,
+      categoryLabel: category?.label ?? "Uncategorised",
+      expenseDate: expense.expenseDate,
+      noteToApprover: expense.noteToApprover,
+      hasReceipt: expense.receiptStorageId !== undefined,
+      status: expense.status,
+      submittedAt: expense.submittedAt,
+      decidedAt: expense.decidedAt,
+      decidedByName: decider?.name ?? decider?.email ?? undefined,
+      decisionNote: expense.decisionNote,
+      submitterName: submitter?.name ?? submitter?.email ?? "Unknown",
+      isMine: expense.userId === user._id,
+      ...capabilitiesFor(user, expense),
+    };
+  },
+});
+
+/**
+ * The append-only history for one expense.
+ *
+ * Both the owner and any manager see the same rows — there is no manager-only
+ * view of what happened. Category ids are resolved to labels here because the
+ * client has no map to do it with; amounts and dates stay raw so the client
+ * can format them in the viewer's own locale.
+ */
+export const history = query({
+  args: { expenseId: v.id("expenses") },
+  returns: v.array(
+    v.object({
+      _id: v.id("expenseEvents"),
+      at: v.number(),
+      actorName: v.string(),
+      type: v.string(),
+      note: v.optional(v.string()),
+      changes: v.optional(
+        v.array(
+          v.object({
+            field: v.string(),
+            from: v.union(v.string(), v.null()),
+            to: v.union(v.string(), v.null()),
+          }),
+        ),
+      ),
+    }),
+  ),
+  handler: async (ctx, args) => {
+    const user = await requireUser(ctx);
+
+    const expense = await ctx.db.get(args.expenseId);
+    if (expense === null || !canView(user, expense)) {
+      return [];
+    }
+
+    const events = await ctx.db
+      .query("expenseEvents")
+      .withIndex("by_expense", (q) => q.eq("expenseId", args.expenseId))
+      .collect();
+
+    return await Promise.all(
+      events.map(async (event) => {
+        const actor = await ctx.db.get(event.actorId);
+
+        const changes = event.changes
+          ? await Promise.all(
+              event.changes.map(async (change) => {
+                if (change.field !== "categoryId") {
+                  return change;
+                }
+                // Raw ids are meaningless in a timeline.
+                const [from, to] = await Promise.all([
+                  change.from ? ctx.db.get(change.from as Id<"categories">) : null,
+                  change.to ? ctx.db.get(change.to as Id<"categories">) : null,
+                ]);
+                return {
+                  field: change.field,
+                  from: from?.label ?? change.from,
+                  to: to?.label ?? change.to,
+                };
+              }),
+            )
+          : undefined;
+
+        return {
+          _id: event._id,
+          at: event._creationTime,
+          actorName: actor?.name ?? actor?.email ?? "Unknown",
+          type: event.type,
+          note: event.note,
+          changes,
         };
       }),
     );
@@ -184,7 +336,13 @@ export const update = mutation({
     categoryId: v.id("categories"),
     expenseDate: v.string(),
     noteToApprover: v.optional(v.string()),
-    receiptStorageId: v.id("_storage"),
+    /**
+     * Omit to keep the existing receipt. Deliberately not required: the client
+     * is never told the current storage id — a manager reading an expense has
+     * no business holding a direct handle to the file, and the gated
+     * `getReceiptUrl` query is the only way to reach it.
+     */
+    receiptStorageId: v.optional(v.id("_storage")),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
@@ -197,9 +355,11 @@ export const update = mutation({
     assertValidExpenseDate(args.expenseDate);
     await assertCategoryUsable(ctx, args.categoryId);
 
-    const receiptChanged = args.receiptStorageId !== expense.receiptStorageId;
+    const receiptChanged =
+      args.receiptStorageId !== undefined && args.receiptStorageId !== expense.receiptStorageId;
+
     if (receiptChanged) {
-      await assertReceiptAcceptable(ctx, args.receiptStorageId);
+      await assertReceiptAcceptable(ctx, args.receiptStorageId!);
     }
 
     const patch = {
@@ -208,7 +368,7 @@ export const update = mutation({
       categoryId: args.categoryId,
       expenseDate: args.expenseDate,
       noteToApprover,
-      receiptStorageId: args.receiptStorageId,
+      receiptStorageId: args.receiptStorageId ?? expense.receiptStorageId,
     };
 
     const changes = diffFields(expense, patch, EDITABLE_FIELDS);

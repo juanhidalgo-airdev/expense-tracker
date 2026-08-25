@@ -24,10 +24,13 @@ export function ReceiptField({
   storageId,
   onChange,
   disabled,
+  label,
 }: {
   storageId: Id<"_storage"> | null;
   onChange: (storageId: Id<"_storage"> | null, fileName: string | null) => void;
   disabled?: boolean;
+  /** Editing an existing expense keeps its receipt unless one is chosen here. */
+  label?: string;
 }) {
   const generateUploadUrl = useMutation(api.receipts.generateUploadUrl);
   const discardUpload = useMutation(api.receipts.discardUpload);
@@ -101,7 +104,11 @@ export function ReceiptField({
   return (
     <div className="flex flex-col gap-1.5">
       <label htmlFor="receipt" className="text-sm font-medium">
-        Receipt <span className="text-black/50 dark:text-white/50">(required)</span>
+        {label ?? (
+          <>
+            Receipt <span className="text-black/50 dark:text-white/50">(required)</span>
+          </>
+        )}
       </label>
 
       <input
