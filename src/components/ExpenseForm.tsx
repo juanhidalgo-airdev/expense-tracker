@@ -192,7 +192,9 @@ export function ExpenseForm({ initial }: { initial?: ExpenseFormInitial }) {
           value={categoryId}
           onChange={(event) => setCategoryId(event.target.value)}
           required
-          className={`${inputClass} bg-transparent`}
+          // No bg-transparent here: it defeated the select/option colours in
+          // globals.css and left the open dropdown white-on-white in dark mode.
+          className={inputClass}
         >
           <option value="">Select a category…</option>
           {categories?.map((category) => (

@@ -3,6 +3,11 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  /* Tells the browser to render native controls — the select dropdown list,
+     the date picker, scrollbars — in light styling. Without this they fall
+     back to the platform default regardless of our colours, which is how the
+     dropdown ended up rendering white-on-white in dark mode. */
+  color-scheme: light;
 }
 
 @theme inline {
@@ -16,11 +21,22 @@
   :root {
     --background: #0a0a0a;
     --foreground: #ededed;
+    color-scheme: dark;
   }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  /* The scaffold hard-coded Arial here, which threw away the Geist fonts the
+     layout is already loading. */
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+}
+
+/* Belt and braces alongside `color-scheme`: an <option> is rendered by the OS
+   and does not inherit from its <select>, so it needs colours of its own. */
+select,
+option {
+  background-color: var(--background);
+  color: var(--foreground);
 }
