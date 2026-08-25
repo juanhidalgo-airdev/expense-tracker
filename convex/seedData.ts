@@ -173,3 +173,33 @@ export const seedData = internalMutation({
     return { categories: categoriesCreated, expenses: expensesCreated };
   },
 });
+
+/**
+ * Wipes demo expense data so the seed can rebuild it from scratch.
+ *
+ * Deliberately scoped: it deletes expenses and their history, and NOTHING
+ * else. Users and authAccounts are left alone so the published demo
+ * credentials keep working, and categories are left alone because expenses
+ * reference them.
+ *
+ * Internal only, so it is not callable from a browser. Run explicitly:
+ *   npx convex run seedData:resetDemoData          (dev)
+ *   npx convex run seedData:resetDemoData --prod   (production)
+ */
+export const resetDemoData = internalMutation({
+  args: {},
+  returns: v.object({ expensesDeleted: v.number(), eventsDeleted: v.number() }),
+  handler: async (ctx) => {
+    const events = await ctx.db.query("expenseEvents").collect();
+    for (const event of events) {
+      await ctx.db.delete(event._id);
+    }
+
+    const expenses = await ctx.db.query("expenses").collect();
+    for (const expense of expenses) {
+      await ctx.db.delete(expense._id);
+    }
+
+    return { expensesDeleted: expenses.length, eventsDeleted: events.length };
+  },
+});
