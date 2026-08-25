@@ -28,7 +28,8 @@ export function AppShell({ children }: { children: ReactNode }) {
   const links = [
     ...(isManager ? [{ href: "/review", label: "Review" }] : []),
     { href: "/expenses", label: "My expenses" },
-    { href: "/expenses/new", label: "New expense" },
+    // The one call to action in the header, styled as a solid button.
+    { href: "/expenses/new", label: "New expense", accent: true },
   ];
 
   /** The wordmark goes wherever "home" means for this role. */
@@ -45,16 +46,31 @@ export function AppShell({ children }: { children: ReactNode }) {
           <nav className="flex items-center gap-1" aria-label="Main">
             {links.map((link) => {
               const active = pathname === link.href;
+
+              // #FFB238 is the app's single accent colour and appears nowhere
+              // else. Its job is to make one action obvious, which only works
+              // while nothing competes with it.
+              //
+              // Text is near-black rather than white deliberately: #171717 on
+              // #FFB238 is about 10:1, while white on it is about 1.8:1 and
+              // would fail WCAG outright. Hover dims rather than shifting hue,
+              // so no second shade creeps in.
+              const className = link.accent
+                ? `rounded-md bg-[#FFB238] px-3 py-1.5 text-sm font-medium text-[#171717] transition-opacity hover:opacity-90 ${
+                    active ? "ring-2 ring-[#FFB238]/40 ring-offset-2 ring-offset-background" : ""
+                  }`
+                : `rounded-md px-2.5 py-1.5 text-sm transition-colors ${
+                    active
+                      ? "bg-black/5 font-medium dark:bg-white/10"
+                      : "text-black/70 hover:bg-black/5 dark:text-white/70 dark:hover:bg-white/10"
+                  }`;
+
               return (
                 <Link
                   key={link.href}
                   href={link.href}
                   aria-current={active ? "page" : undefined}
-                  className={`rounded-md px-2.5 py-1.5 text-sm transition-colors ${
-                    active
-                      ? "bg-black/5 font-medium dark:bg-white/10"
-                      : "text-black/70 hover:bg-black/5 dark:text-white/70 dark:hover:bg-white/10"
-                  }`}
+                  className={className}
                 >
                   {link.label}
                 </Link>
