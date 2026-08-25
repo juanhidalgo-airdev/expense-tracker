@@ -12,7 +12,7 @@
 | Clarifying questions sent | ✅ 2026-08-23 |
 | Client answers received | ✅ 2026-08-24 — recorded in `questions.md` |
 | Development plan created | ✅ `development-plan.md` |
-| Phase 1 — Foundation and deployed skeleton | 🟡 Everything deployed. Exit criterion (live sign-in) blocked only by Vercel Deployment Protection |
+| Phase 1 — Foundation and deployed skeleton | ✅ **Complete.** Seeded credential signs in on the live production URL |
 | Phase 2 — Data model, authorization, seed | ✅ Schema, permissions, transitions, events, money/dates, full seed, 78 tests green |
 | Phase 3 — Expense submission | 🟡 Backend done (receipts, create/update/submit/withdraw, duplicate warning). Form UI next |
 | Phase 4 — Employee expense views | ⬜ Not started |
@@ -49,12 +49,12 @@ Settled before planning. Full reasoning in `questions.md`; these are the ones ev
 | Item | Status |
 | --- | --- |
 | Add `Other` to the client's four categories | Decided yes. **Send Vlad a one-line heads-up** — he named a specific list |
-| Convex Auth account provisioning (`createAccount`) | ✅ **Retired locally.** Seeded account signs in; `users` + `authAccounts` both written; password stored as a salted scrypt hash; seed is idempotent. Still to prove on the deployed URL |
+| Convex Auth account provisioning (`createAccount`) | ✅ **Fully retired.** Verified end to end on production, not just locally |
 | Convex deployment | ✅ `dev:brainy-toucan-176` — team `juan-hidalgo-lozano`, project `expense-tracker`. `JWT_PRIVATE_KEY`, `JWKS`, `SITE_URL` set |
 | Self-service sign-up blocked | ✅ Verified by calling `auth:signIn` with `flow: "signUp"` directly — rejected, no user created |
 | GitHub repo | ✅ `juanhidalgo-airdev/expense-tracker` — **private**, flip to public in Phase 8 |
 | Convex prod | ✅ `clever-mosquito-451` — functions deployed, auth keys + SITE_URL set, seeded (4 users, 5 categories, 6 expenses) |
-| Vercel | 🟡 Deployed to `https://expense-tracker-hidalgo1.vercel.app` via CLI. **Blocked: Deployment Protection is ON**, so the URL redirects to Vercel SSO and a reviewer cannot reach it |
+| Vercel | ✅ `https://expense-tracker-opal-pi-28.vercel.app` — scope `juanhidalgo-3245s-projects`, publicly reachable |
 
 ## Verification findings (Phase 1)
 
@@ -73,3 +73,28 @@ Checked against the installed package rather than the docs, and two documented a
 - *Promote Prototypes* and *Archive Prototypes* phases dropped: no prototypes exist.
 - Single environment rather than dev + prod (see above).
 - Convex Auth instead of the WorkOS default, at the client's direction.
+
+## Environments
+
+| | |
+| --- | --- |
+| Production app | `https://expense-tracker-opal-pi-28.vercel.app` |
+| Vercel scope | `juanhidalgo-3245s-projects` (personal). Deploys are `npx vercel deploy --prod` — **no auto-deploy on push**, because the Vercel login is a different identity from the GitHub account that owns the repo |
+| Convex prod | `clever-mosquito-451` |
+| Convex dev | `brainy-toucan-176` |
+| Repo | `juanhidalgo-airdev/expense-tracker` (private until Phase 8) |
+
+**Vercel Deployment Protection** applies to deployment-specific URLs (`*-<hash>-*.vercel.app`), which redirect to Vercel SSO. The **canonical production alias above is public** — verified with a 200 on `/signin`. The alias is what gets submitted.
+
+### Seeded credentials (production)
+
+Password for all four: `Expense2026!demo`
+
+| Email | Name | Role |
+| --- | --- | --- |
+| `employee@expensetracker.test` | Erin Employee | employee |
+| `manager@expensetracker.test` | Maya Manager | manager |
+| `elliot@expensetracker.test` | Elliot Employee | employee |
+| `marcus@expensetracker.test` | Marcus Manager | manager |
+
+The first two are the pair the brief asks for. Marcus exists so a reviewer can watch Maya's own expense be approved by someone else; Elliot exists so cross-user isolation is visible rather than asserted.
