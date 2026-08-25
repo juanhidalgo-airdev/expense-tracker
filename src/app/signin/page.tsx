@@ -74,7 +74,7 @@ export default function SignInPage() {
           </button>
         </form>
 
-        <p className="mt-6 text-xs text-black/50 dark:text-white/50">
+        <p className="mt-6 text-xs text-black/60 dark:text-white/60">
           Accounts are provisioned by an administrator. There is no self-service sign-up.
         </p>
       </div>

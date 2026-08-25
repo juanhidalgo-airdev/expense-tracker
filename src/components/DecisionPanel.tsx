@@ -107,7 +107,7 @@ export function DecisionPanel({
                 "Reason (required)"
               ) : (
                 <>
-                  Note <span className="text-black/50 dark:text-white/50">(optional)</span>
+                  Note <span className="text-black/60 dark:text-white/60">(optional)</span>
                 </>
               )}
             </span>

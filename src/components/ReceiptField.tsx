@@ -106,7 +106,7 @@ export function ReceiptField({
       <label htmlFor="receipt" className="text-sm font-medium">
         {label ?? (
           <>
-            Receipt <span className="text-black/50 dark:text-white/50">(required)</span>
+            Receipt <span className="text-black/60 dark:text-white/60">(required)</span>
           </>
         )}
       </label>

@@ -62,7 +62,7 @@ export function HistoryTimeline({ expenseId }: { expenseId: Id<"expenses"> }) {
               <span className="font-medium">{event.actorName}</span>{" "}
               {EVENT_LABELS[event.type] ?? event.type}
             </p>
-            <p className="mt-0.5 text-xs text-black/50 dark:text-white/50">
+            <p className="mt-0.5 text-xs text-black/60 dark:text-white/60">
               {formatTimestamp(event.at)}
             </p>
 

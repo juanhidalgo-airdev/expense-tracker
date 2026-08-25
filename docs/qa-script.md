@@ -129,3 +129,44 @@ Run against the deployed URL, not localhost — that is what gets reviewed, and 
 | 10.1 | All of the above against the **deployed URL** | Identical behaviour to local |
 | 10.2 | Upload a receipt in production specifically | Succeeds — the upload path is the most environment-sensitive part |
 | 10.3 | Clone the repo fresh, follow the README, run it | Works from `.env.example` alone, with no undocumented steps |
+
+---
+
+## 11. Contrast audit (both themes)
+
+Run after any colour change. Paste this in the console on each page; it resolves every text node's colour and its *effective* background — compositing translucent layers — and reports anything below WCAG AA.
+
+Two things it must handle, which a naive version gets wrong:
+
+- **Tailwind v4 emits `oklab()`** for alpha-modified colours, so colours are resolved by painting them to a 1×1 canvas and reading the pixel back rather than by parsing the string.
+- **Translucent backgrounds stack.** A `bg-black/5` badge sits on the page background, so the real backdrop has to be composited, not read off the element.
+
+```js
+(function(){var cv=document.createElement('canvas');cv.width=cv.height=1;var ctx=cv.getContext('2d',{willReadFrequently:true});
+function toRGBA(s){ctx.clearRect(0,0,1,1);try{ctx.fillStyle=s}catch(e){return null}ctx.fillRect(0,0,1,1);var d=ctx.getImageData(0,0,1,1).data;return{r:d[0],g:d[1],b:d[2],a:d[3]/255}}
+function toLin(c){c/=255;return c<=0.03928?c/12.92:Math.pow((c+0.055)/1.055,2.4)}
+function over(f,b){return{r:f.r*f.a+b.r*(1-f.a),g:f.g*f.a+b.g*(1-f.a),b:f.b*f.a+b.b*(1-f.a),a:1}}
+function lum(c){return 0.2126*toLin(c.r)+0.7152*toLin(c.g)+0.0722*toLin(c.b)}
+function ratio(a,b){var l1=Math.max(lum(a),lum(b)),l2=Math.min(lum(a),lum(b));return(l1+0.05)/(l2+0.05)}
+function effBg(el){var st=[],n=el;while(n){var bg=toRGBA(getComputedStyle(n).backgroundColor);if(bg&&bg.a>0){st.push(bg);if(bg.a===1)break}n=n.parentElement}
+var base={r:255,g:255,b:255,a:1},last=st[st.length-1];if(last&&last.a===1){base=last;st.pop()}
+for(var i=st.length-1;i>=0;i--)base=over(st[i],base);return base}
+var fails=[];document.querySelectorAll('body *').forEach(function(el){
+if(!Array.prototype.some.call(el.childNodes,function(n){return n.nodeType===3&&n.textContent.trim().length>1}))return;
+var cs=getComputedStyle(el);if(cs.visibility==='hidden'||cs.display==='none'||+cs.opacity===0)return;
+var rc=el.getBoundingClientRect();if(!rc.width||!rc.height)return;
+var f0=toRGBA(cs.color);if(!f0)return;var bg=effBg(el),fg=f0.a<1?over(f0,bg):f0,r=ratio(fg,bg);
+var sz=parseFloat(cs.fontSize),min=(sz>=24||(sz>=18.66&&+cs.fontWeight>=700))?3:4.5;
+if(r<min)fails.push({text:el.textContent.trim().slice(0,38),ratio:+r.toFixed(2),needs:min,px:Math.round(sz)})});
+return fails})()
+```
+
+Sanity check before trusting a run: `#171717` on `#FFB238` must come out at **9.97:1**.
+
+| # | Page | Expected |
+| --- | --- | --- |
+| 11.1 | Every page, **both themes** | Empty array |
+| 11.2 | Detail page with a decision panel open | Empty array — the confirmation copy is the densest small text in the app |
+| 11.3 | After any colour change | Re-run before shipping |
+
+**Known result:** `text-black/50` at 12px measured 4.0:1 on white and failed, while the same opacity passed in dark mode (5.4:1 on near-black). All muted text is now `/60`. Light mode is the stricter of the two themes here — do not assume checking one covers the other.

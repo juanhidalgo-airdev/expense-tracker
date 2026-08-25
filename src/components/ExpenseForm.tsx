@@ -166,7 +166,7 @@ export function ExpenseForm({ initial }: { initial?: ExpenseFormInitial }) {
               field gap and left an odd space above Category. It appears only
               once there is an amount to echo back. */}
           {amountMinor !== null && (
-            <span className="text-xs text-black/50 dark:text-white/50">
+            <span className="text-xs text-black/60 dark:text-white/60">
               {formatMinor(amountMinor)}
             </span>
           )}
@@ -219,7 +219,7 @@ export function ExpenseForm({ initial }: { initial?: ExpenseFormInitial }) {
 
       <div className="flex flex-col gap-1.5">
         <label htmlFor="note" className="text-sm font-medium">
-          Note to approver <span className="text-black/50 dark:text-white/50">(optional)</span>
+          Note to approver <span className="text-black/60 dark:text-white/60">(optional)</span>
         </label>
         <textarea
           id="note"

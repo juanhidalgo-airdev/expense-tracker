@@ -100,28 +100,28 @@ export default function ExpenseDetailPage() {
 
       <dl className="mt-6 grid grid-cols-1 gap-x-8 gap-y-4 sm:grid-cols-2">
         <div>
-          <dt className="text-xs font-medium text-black/50 dark:text-white/50">Amount</dt>
+          <dt className="text-xs font-medium text-black/60 dark:text-white/60">Amount</dt>
           <dd className="mt-0.5 text-sm tabular-nums">
             {formatMinor(expense.amountMinor, expense.currency)}
           </dd>
         </div>
         <div>
-          <dt className="text-xs font-medium text-black/50 dark:text-white/50">Date incurred</dt>
+          <dt className="text-xs font-medium text-black/60 dark:text-white/60">Date incurred</dt>
           <dd className="mt-0.5 text-sm">{formatCalendarDate(expense.expenseDate)}</dd>
         </div>
         <div>
-          <dt className="text-xs font-medium text-black/50 dark:text-white/50">Category</dt>
+          <dt className="text-xs font-medium text-black/60 dark:text-white/60">Category</dt>
           <dd className="mt-0.5 text-sm">{expense.categoryLabel}</dd>
         </div>
         <div>
-          <dt className="text-xs font-medium text-black/50 dark:text-white/50">Submitted</dt>
+          <dt className="text-xs font-medium text-black/60 dark:text-white/60">Submitted</dt>
           <dd className="mt-0.5 text-sm">
             {expense.submittedAt !== undefined ? formatTimestamp(expense.submittedAt) : "Not yet"}
           </dd>
         </div>
         {expense.noteToApprover !== undefined && (
           <div className="sm:col-span-2">
-            <dt className="text-xs font-medium text-black/50 dark:text-white/50">
+            <dt className="text-xs font-medium text-black/60 dark:text-white/60">
               Note to approver
             </dt>
             <dd className="mt-0.5 text-sm">{expense.noteToApprover}</dd>
@@ -171,7 +171,7 @@ export default function ExpenseDetailPage() {
       )}
 
       {expense.canWithdraw && (
-        <p className="mt-2 text-xs text-black/50 dark:text-white/50">
+        <p className="mt-2 text-xs text-black/60 dark:text-white/60">
           Pending expenses cannot be edited directly — withdraw it first, so a manager never
           approves something other than what they read.
         </p>
