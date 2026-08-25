@@ -17,9 +17,9 @@
 | Phase 3 — Expense submission | ✅ Backend + form UI, receipt upload, duplicate warning. Verified in browser end to end |
 | Phase 4 — Employee expense views | ✅ Detail view, receipt viewer, history timeline, withdraw/edit/resubmit, status filter + search |
 | Phase 5 — Manager review and decisions | ✅ Queue with Pending/Decided tabs, approve/reject with confirmation, self-approval blocked, 116 tests |
-| Phase 6 — Polish, edge cases, e2e | ⬜ Not started |
-| Phase 7 — Security audit | ⬜ Not started |
-| Phase 8 — Deliverable and submission | ⬜ Not started |
+| Phase 6 — Polish, edge cases, QA | ✅ Error boundary, 404, keyboard focus rings, responsive verified at 375px, manual QA script. Playwright e2e removed — see below |
+| Phase 7 — Security audit | ✅ 1 critical + 1 high fixed; rest accepted with recorded reasoning. docs/security-audit.md |
+| Phase 8 — Deliverable and submission | 🟡 README done, prod reset + re-seeded, prod smoke test passed including receipt upload. **Remaining: flip repo public** |
 
 ## Direction decisions
 
