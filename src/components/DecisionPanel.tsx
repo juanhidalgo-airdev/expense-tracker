@@ -122,7 +122,7 @@ export function DecisionPanel({
                   ? "What needs to change before this can be approved?"
                   : ""
               }
-              className="rounded-md border border-black/15 px-3 py-2 text-sm outline-none focus:border-black/40 dark:border-white/20 dark:focus:border-white/50"
+              className="rounded-md border border-black/15 px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-black/40 dark:focus-visible:ring-white/50 focus:border-black/40 dark:border-white/20 dark:focus:border-white/50"
             />
           </label>
 

@@ -10,7 +10,8 @@
     "setup:auth": "node scripts/generate-auth-keys.mjs",
     "seed": "convex run seed:run",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@auth/core": "0.41.3",
@@ -23,6 +24,7 @@
   "devDependencies": {
     "@edge-runtime/vm": "5.0.0",
     "@eslint/eslintrc": "^3",
+    "@playwright/test": "1.57.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",

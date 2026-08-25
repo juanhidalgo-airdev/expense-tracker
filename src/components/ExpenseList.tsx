@@ -97,7 +97,7 @@ export function ExpenseList({
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder={showSubmitter ? "Search description or person…" : "Search…"}
-            className="w-56 rounded-md border border-black/15 px-3 py-1.5 text-sm outline-none focus:border-black/40 dark:border-white/20 dark:focus:border-white/50"
+            className="w-56 rounded-md border border-black/15 px-3 py-1.5 text-sm outline-none focus-visible:ring-2 focus-visible:ring-black/40 dark:focus-visible:ring-white/50 focus:border-black/40 dark:border-white/20 dark:focus:border-white/50"
           />
         </label>
       </div>
