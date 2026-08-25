@@ -123,7 +123,12 @@ export function ReceiptField({
         className="block w-full text-sm file:mr-3 file:rounded-md file:border file:border-black/15 file:bg-transparent file:px-3 file:py-1.5 file:text-sm file:font-medium disabled:opacity-50 dark:file:border-white/20"
       />
 
-      <p id="receipt-status" className="min-h-5 text-sm" aria-live="polite">
+      {/* Stays in the DOM and stays displayed even when empty: an aria-live
+          region has to exist before its content changes for a screen reader to
+          announce it, and a display:none region may not announce at all. It
+          simply no longer reserves height — that was adding an odd gap above
+          the next field. An empty block element is 0px tall on its own. */}
+      <p id="receipt-status" className="text-sm" aria-live="polite">
         {uploading && <span className="text-black/60 dark:text-white/60">Uploading…</span>}
         {!uploading && error !== null && (
           <span className="text-red-600 dark:text-red-400">{error}</span>

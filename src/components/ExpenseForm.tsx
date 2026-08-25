@@ -162,9 +162,14 @@ export function ExpenseForm({ initial }: { initial?: ExpenseFormInitial }) {
             placeholder="482.50"
             className={inputClass}
           />
-          <span className="min-h-5 text-xs text-black/50 dark:text-white/50">
-            {amountMinor !== null && formatMinor(amountMinor)}
-          </span>
+          {/* No reserved height: an empty slot here stacked on top of the
+              field gap and left an odd space above Category. It appears only
+              once there is an amount to echo back. */}
+          {amountMinor !== null && (
+            <span className="text-xs text-black/50 dark:text-white/50">
+              {formatMinor(amountMinor)}
+            </span>
+          )}
         </div>
 
         <div className="flex flex-col gap-1.5">
